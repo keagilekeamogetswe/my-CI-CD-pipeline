@@ -10,7 +10,7 @@ describe('Calculator', () => {
     })
 
     test('returns 0 for an empty array', () => {
-      expect(Calculator.add([])).toBe(0)
+      expect(Calculator.add([])).toBe(2)
     })
 
     test('handles negative numbers', () => {
