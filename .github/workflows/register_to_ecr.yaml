@@ -3,34 +3,47 @@ name: Build and Push to ECR
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]   # Run on PRs targeting main as well
 
 permissions:
-  id-token: write
+  id-token: write          # Required for OIDC
   contents: read
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+
     steps:
+      # Step 1: Checkout your repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Step 2: Configure AWS credentials via OIDC
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::720215340864:role/github-actions-eks-deploy
           aws-region: us-east-1
 
+      # Step 3: Authenticate Docker to ECR
       - name: Login to Amazon ECR
         run: |
           aws ecr get-login-password --region us-east-1 \
             | docker login --username AWS --password-stdin 720215340864.dkr.ecr.us-east-1.amazonaws.com
 
+      # Step 4: Build Docker image (local name = user-service)
       - name: Build Docker image
         run: docker build -f app/user/Dockerfile -t user-service .
 
+      # Step 5: Tag image for ECR repo (my-ci-cd-pipeline)
       - name: Tag Docker image
-        run: docker tag user-service:latest 720215340864.dkr.ecr.us-east-1.amazonaws.com/user-service:latest
+        run: |
+          docker tag user-service:latest 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:latest
+          docker tag user-service:latest 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:${{ github.sha }}
 
+      # Step 6: Push both tags (latest + commit SHA) to ECR
       - name: Push Docker image
-        run: docker push 720215340864.dkr.ecr.us-east-1.amazonaws.com/user-service:latest
+        run: |
+          docker push 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:latest
+          docker push 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:${{ github.sha }}
