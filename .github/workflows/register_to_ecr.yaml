@@ -33,7 +33,7 @@ jobs:
         run: docker build -f app/user/Dockerfile -t user-service .
 
       - name: Tag Docker image
-        run: docker tag user-service:latest 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:latest
+        run: docker tag user-service:latest 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:user-service
 
       - name: Push Docker image
-        run: docker push 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:latest
+        run: docker push 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:user-service
