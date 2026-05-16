@@ -31,11 +31,11 @@ jobs:
       - name: Build Docker image for message-service
         run: docker build -f app/messages/Dockerfile -t message-service .
       - name: Tag Docker image for user-service
-        run: docker tag user-service:latest 720215340864.dkr.ecr.us-east-1.amazonaws.com/user-service:latest
+        run: docker tag user-service:latest 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:user-service
       - name: Tag Docker image for message-service
-        run: docker tag message-service:latest 720215340864.dkr.ecr.us-east-1.amazonaws.com/message-service:latest
+        run: docker tag message-service:latest 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:message-service
 
       - name: Push Docker image for user-service
-        run: docker push 720215340864.dkr.ecr.us-east-1.amazonaws.com/user-service:latest
+        run: docker push 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:user-service
       - name: Push Docker image  for message-service
-        run: docker push 720215340864.dkr.ecr.us-east-1.amazonaws.com/message-service:latest
+        run: docker push 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:message-service
