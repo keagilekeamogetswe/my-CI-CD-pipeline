@@ -3,8 +3,6 @@ name: Build and Push to ECR
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 permissions:
   id-token: write
@@ -13,7 +11,6 @@ permissions:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -21,7 +18,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::720215340864:role/github-to-aws-oict
+          role-to-assume: arn:aws:iam::720215340864:role/github-actions-eks-deploy
           aws-region: us-east-1
 
       - name: Login to Amazon ECR
@@ -29,11 +26,16 @@ jobs:
           aws ecr get-login-password --region us-east-1 \
             | docker login --username AWS --password-stdin 720215340864.dkr.ecr.us-east-1.amazonaws.com
 
-      - name: Build Docker image
+      - name: Build Docker image for user-service
         run: docker build -f app/user/Dockerfile -t user-service .
+      - name: Build Docker image for message-service
+        run: docker build -f app/messages/Dockerfile -t message-service .
+      - name: Tag Docker image for user-service
+        run: docker tag user-service:latest 720215340864.dkr.ecr.us-east-1.amazonaws.com/user-service:latest
+      - name: Tag Docker image for message-service
+        run: docker tag message-service:latest 720215340864.dkr.ecr.us-east-1.amazonaws.com/message-service:latest
 
-      - name: Tag Docker image
-        run: docker tag user-service:latest 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:user-service
-
-      - name: Push Docker image
-        run: docker push 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:user-service
+      - name: Push Docker image for user-service
+        run: docker push 720215340864.dkr.ecr.us-east-1.amazonaws.com/user-service:latest
+      - name: Push Docker image  for message-service
+        run: docker push 720215340864.dkr.ecr.us-east-1.amazonaws.com/message-service:latest
