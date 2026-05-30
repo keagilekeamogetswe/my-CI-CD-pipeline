@@ -13,7 +13,7 @@ class User {
   }
 }
 
-export const userCredentials = ()=>{
+export const userCredentials = () => {
   let user = new User();
   return {
     setCredentials: (username, user_id) => {
@@ -38,12 +38,12 @@ export const userCredentials = ()=>{
     UpdateViaVerification: (verification_jwt, verification_code) => {
       // Implement verification code logic here
       const payload = JWTHelper.decode(verification_jwt, process.env.JWT_OTP_SECRET);
-      const {hashed_otp, user_id} = payload;
+      const { hashed_otp, user_id } = payload;
       const verificationResult = await argon.verify(hashed_otp, verification_code)
 
-        if (verificationResult) {
-          return user.setPassword(new_pass);
-        }
+      if (verificationResult) {
+        return user.setPassword(new_pass);
+      }
       if (verificationResult) { // Placeholder for valid code check
         return user.setPassword(new_pass);
       }
@@ -57,4 +57,5 @@ export const userCredentials = ()=>{
       user.username = new_username;
       return true;
     }
-}
+  }
+};
