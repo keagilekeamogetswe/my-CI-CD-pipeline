@@ -1,0 +1,28 @@
+databaseType = "MariaDb"
+id = "b161c84e-8953-4996-9bdc-8b0a8d46d938"
+name = "flyway"
+
+[flyway]
+locations = [ "filesystem:migrations" ]
+mixed = true
+outOfOrder = true
+schemaModelLocation = "schema-model"
+validateMigrationNaming = true
+
+  [flyway.check]
+  majorTolerance = 0
+
+[flywayDesktop]
+developmentEnvironment = "development"
+shadowEnvironment = "shadow"
+enableMigrations = false
+
+[redgateCompare]
+filterFile = "filter.rgf"
+
+[redgateCompare.mysql.options.ignores]
+ignoreNewlinesInTextObjects = "off"
+
+[environments.target1]
+url = "jdbc:mysql://localhost:3306?allowPublicKeyRetrieval=true&useSSL=false"
+schemas = [ "test_db" ]
