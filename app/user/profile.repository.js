@@ -4,18 +4,41 @@ export default class UserProfileRepository {
     this.mongo_connection = mongo_connection;
   }
 
-  async initialise(user_id, name, lastname, dob, phone) {
+  async initialise(
+    user_id,
+    name,
+    lastname,
+    dob,
+    phone,
+    profile_picture_input = "",
+    bio = "",
+  ) {
+    const profile_picture_path = "profile-pictures/";
+    const profile_picture =
+      profile_picture_path +
+      (profile_picture_input == "" || !profile_picture_input
+        ? "defualt"
+        : profile_picture_input);
+
     return await this.mysql_connection.execute(
       `
       INSERT INTO user_profiles
-        (user_id, name, lastname, dob, phone)
-      VALUES (?, ?, ?, ?, ?)
+        (user_id, name, lastname, dob, phone, profile_picture, bio)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
-      [user_id, name, lastname, dob, phone],
+      [
+        user_id,
+        name,
+        lastname,
+        dob,
+        phone,
+        profile_picture + profile_picture,
+        bio,
+      ],
     );
   }
 
-  async updateProfile(user_id, updates) {
+  async updateProfile(profile_id, updates) {
     const fields = [];
     const values = [];
 
@@ -27,22 +50,26 @@ export default class UserProfileRepository {
     const query = `
       UPDATE user_profiles
       SET ${fields.join(", ")}
-      WHERE user_id = ?
+      WHERE id = ?
     `;
 
-    values.push(user_id);
+    values.push(profile_id);
 
     return await this.mysql_connection.execute(query, values);
   }
 
-  async configure(user_id, updateOps, unsetOps) {
+  async configure(profile_id, updateOps, unsetOps) {
     return await this.mongo_connection.updateOne(
-      { user: user_id },
+      { profile: profile_id },
       {
         ...(Object.keys(updateOps).length ? { $set: updateOps } : {}),
         ...(Object.keys(unsetOps).length ? { $unset: unsetOps } : {}),
       },
       { upsert: true },
     );
+  }
+  async getProfileConfig(profile_id) {
+    const doc = await this.mongo_connection.findOne({ profile: profile_id });
+    return doc ? doc.settings || {} : {};
   }
 }

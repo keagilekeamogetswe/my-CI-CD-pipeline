@@ -1,26 +1,28 @@
 import UserProfileRepository from "./profile.repository.js";
-
+import defaults from "./config/profile.defaults.js";
 export class UserProfile {
-  constructor(sqlConnection, mongoCollection, defaults) {
+  constructor(sqlConnection, mongoCollection) {
     this.repository = new UserProfileRepository(sqlConnection, mongoCollection);
     this.defaults = defaults;
   }
 
-  async initialise(user_id, name, lastname, dob, phone) {
+  async initialise(user_id, name, lastname, dob, phone, profile_picture, bio) {
     return await this.repository.initialise(
       user_id,
       name,
       lastname,
       dob,
       phone,
+      profile_picture,
+      bio,
     );
   }
 
-  async updateProfile(user_id, updates) {
-    return await this.repository.updateProfile(user_id, updates);
+  async updateProfile(profile_id, updates) {
+    return await this.repository.updateProfile(profile_id, updates);
   }
 
-  async configure(user_id, config) {
+  async configure(profile_id, config) {
     const updateOps = {};
     const unsetOps = {};
 
@@ -32,6 +34,9 @@ export class UserProfile {
       }
     }
 
-    return await this.repository.configure(user_id, updateOps, unsetOps);
+    return await this.repository.configure(profile_id, updateOps, unsetOps);
+  }
+  async getProfileConfig(profile_id) {
+    return await this.repository.getProfileConfig(profile_id);
   }
 }
