@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package user;
+
+// Service definition
+service ProfileService {
+  rpc GetProfileConfig (ProfileIdRequest) returns (ConfigurationResponse);
+  rpc SetConfiguration (SetConfigParams) returns (ConfigResponse);
+  rpc InitialiseProfile (ProfileData) returns (ProfileCreationResponse);
+  rpc UpdateProfile(ProfileUpdateReq) returns (ProfileUpdateRes);
+}
+message ProfileUpdateReq{
+  string profile_id = 1;
+  map<string, string> config_updates = 2;
+}
+message ProfileUpdateRes{
+  bool success = 1;
+  string message = 2;
+}
+// Request for getting a user profile configuration
+message ProfileIdRequest {
+  string profile_id = 1;
+}
+
+// Example configuration response
+message ConfigurationResponse {
+  string profile_id = 1;
+  map<string, string> config = 2;
+}
+
+// Request for setting configuration
+message SetConfigParams {
+  string profile_id = 1;
+  map<string, string> config_updates = 2;
+}
+
+// Response after setting configuration
+message ConfigResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Profile creation request
+message ProfileData {
+  string user_id = 1;
+  string name = 2;
+  string lastname = 3;
+  string email = 4;
+  string dob = 5;
+  string phone = 6;
+  string bio = 7;
+  string profile_picture = 8;
+}
+
+// Profile creation response
+message ProfileCreationResponse {
+  bool success = 1;
+  string profile_id = 2;
+  string message = 3;
+}

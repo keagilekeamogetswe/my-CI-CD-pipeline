@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package messages;
+
+service MessageService {
+  rpc SendMessage (MessageRequest) returns (MessageResponse);
+  rpc GetMessages (GetMessagesRequest) returns (MessagesResponse);
+}
+
+message MessageRequest {
+  string userid = 1;
+  string targetUserid = 2;
+  string message = 3;
+}
+
+message MessageResponse {
+  string messageId = 1;
+  string recipientId = 2;
+  bool success = 3;
+  string message = 4;
+  string time = 5;
+  DeliveryStatus status = 6;
+}
+
+message GetMessagesRequest {
+  string my_user_id = 1;
+}
+
+message MessagesResponse {
+  repeated MessageResponse messages = 1;
+}
+
+enum DeliveryStatus {
+  DELIVERED = 0;
+  FAILED = 1;
+  RECEIVED = 2;
+}
