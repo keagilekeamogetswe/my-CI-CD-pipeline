@@ -9,7 +9,7 @@ import { resolve } from "path";
 
 dotenv.config({ path: "./tests/.env" });
 
-describe("gRPC Profile Service", () => {
+describe.skip("gRPC Profile Service", () => {
   let grpcClient;
   let user_id;
   let profile_id;

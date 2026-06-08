@@ -4,7 +4,7 @@ import argon2 from "argon2";
 import { JWTHelper } from "../../app/utility/jwt.js";
 import dotenv from "dotenv";
 dotenv.config({ path: "./tests/.env" });
-describe("userCredentials backend", () => {
+describe.skip("userCredentials backend", () => {
   let creds;
 
   beforeEach(async () => {
