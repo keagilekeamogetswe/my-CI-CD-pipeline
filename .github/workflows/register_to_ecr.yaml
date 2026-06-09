@@ -1,41 +1,76 @@
-name: Build and Push to ECR
+name: Testing
 
 on:
   push:
     branches: [ "main" ]
-
-permissions:
-  id-token: write
-  contents: read
-
+  pull_request:
+    branches: [ "main" ]
 jobs:
-  build-and-push:
+  test:
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_PASS }}
+          MYSQL_DATABASE: ${{ secrets.MYSQL_DB }}
+          MYSQL_USER: ${{ secrets.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASS }}
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -p${{ secrets.MYSQL_PASS }}"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          role-to-assume: arn:aws:iam::720215340864:role/github-actions-eks-deploy
-          aws-region: us-east-1
+          node-version: 20
 
-      - name: Login to Amazon ECR
+      - name: Install dependencies
+        run: npm install
+
+      - name: Wait for MySQL
         run: |
-          aws ecr get-login-password --region us-east-1 \
-            | docker login --username AWS --password-stdin 720215340864.dkr.ecr.us-east-1.amazonaws.com
+          until mysqladmin ping -h127.0.0.1 -uroot -p${{ secrets.MYSQL_PASS }} --silent; do
+            echo "Waiting for MySQL..."
+            sleep 5
+          done
 
-      - name: Build Docker image for user-service
-        run: docker build -f app/user/Dockerfile -t user-service .
-      - name: Build Docker image for message-service
-        run: docker build -f app/messages/Dockerfile -t message-service .
-      - name: Tag Docker image for user-service
-        run: docker tag user-service:latest 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:user-service
-      - name: Tag Docker image for message-service
-        run: docker tag message-service:latest 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:message-service
+      - name: Run Flyway migrations
+        uses: flyway/flyway-action@v2
+        with:
+          url: jdbc:mysql://127.0.0.1:3306/${{ secrets.MYSQL_DB }}
+          user: ${{ secrets.MYSQL_USER }}
+          password: ${{ secrets.MYSQL_PASS }}
+          locations: filesystem:./migrations
 
-      - name: Push Docker image for user-service
-        run: docker push 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:user-service
-      - name: Push Docker image  for message-service
-        run: docker push 720215340864.dkr.ecr.us-east-1.amazonaws.com/my-ci-cd-pipeline:message-service
+      - name: Run tests
+        env:
+          ENV: test
+          ENVIRONMENT: testing
+          JWT_VERIFICATION_REQUEST_SECRET_KEY: ${{ secrets.JWT_VERIFICATION_REQUEST_SECRET_KEY }}
+          JWT_VERIFICATION_REQUEST_TTL: ${{ secrets.JWT_VERIFICATION_REQUEST_TTL }}
+
+          MONGO_USER: ${{ secrets.MONGO_USER }}
+          MONGO_PASS: ${{ secrets.MONGO_PASS }}
+          MONGO_PORT: ${{ secrets.MONGO_PORT }}
+          MONGO_DB: ${{ secrets.MONGO_DB }}
+          MONGO_MAX_POOL_SIZE: ${{ secrets.MONGO_MAX_POOL_SIZE }}
+
+          MYSQL_USER: ${{ secrets.MYSQL_USER }}
+          MYSQL_PASS: ${{ secrets.MYSQL_PASS }}
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_DB: ${{ secrets.MYSQL_DB }}
+          MYSQL_MAX_POOL_SIZE: ${{ secrets.MYSQL_MAX_POOL_SIZE }}
+          MYSQL_QUEUE_LIMIT: ${{ secrets.MYSQL_QUEUE_LIMIT }}
+
+          GRPC_USER_PORT: ${{ secrets.GRPC_USER_PORT }}
+        run: npm test
