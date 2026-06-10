@@ -13,84 +13,91 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      MYSQL_USER: ${{ secrets.MYSQL_USER }}
-      MYSQL_PASS: ${{ secrets.MYSQL_PASS }}
-      MYSQL_DB: ${{ secrets.MYSQL_DB }}
+      ENV: test
+      JWT_VERIFICATION_REQUEST_SECRET_KEY: test_secerte
+      JWT_VERIFICATION_REQUEST_TTL: 2m
+      ENVIRONMENT: testing
 
-      JWT_VERIFICATION_REQUEST_SECRET_KEY: ${{ secrets.JWT_VERIFICATION_REQUEST_SECRET_KEY }}
-      JWT_VERIFICATION_REQUEST_TTL: ${{ secrets.JWT_VERIFICATION_REQUEST_TTL }}
+      MONGO_USER: admin
+      MONGO_PASS: secret
+      MONGO_PORT: 27017
+      MONGO_DB: test_db
+      MONGO_MAX_POOL_SIZE: 20
 
-      MONGO_USER: ${{ secrets.MONGO_USER }}
-      MONGO_PASS: ${{ secrets.MONGO_PASS }}
-      MONGO_PORT: ${{ secrets.MONGO_PORT }}
-      MONGO_DB: ${{ secrets.MONGO_DB }}
-      MONGO_MAX_POOL_SIZE: ${{ secrets.MONGO_MAX_POOL_SIZE }}
+      MYSQL_USER: root
+      MYSQL_PASS: supersecret
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: 3306
+      MYSQL_DB: test_db
+      MYSQL_MAX_POOL_SIZE: 20
+      MYSQL_QUEUE_LIMIT: 0
 
-      MYSQL_MAX_POOL_SIZE: ${{ secrets.MYSQL_MAX_POOL_SIZE }}
-      MYSQL_QUEUE_LIMIT: ${{ secrets.MYSQL_QUEUE_LIMIT }}
-
-      GRPC_USER_PORT: ${{ secrets.GRPC_USER_PORT }}
+      GRPC_USER_PORT: 50051
 
     services:
       mysql:
         image: mysql:8.0
         env:
-          # NOTE: GitHub Actions does NOT support secrets here.
-          # Use literal values for the service container.
-          MYSQL_ROOT_PASSWORD: rootpass
-          MYSQL_DATABASE: testdb
-          MYSQL_USER: testuser
-          MYSQL_PASSWORD: testpass
+          MYSQL_ROOT_PASSWORD: supersecret
+          MYSQL_DATABASE: test_db
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h localhost -uroot -prootpass"
+          --health-cmd="mysqladmin ping -h localhost -uroot -psupersecret"
           --health-interval=10s
           --health-timeout=5s
-          --health-retries=5
+          --health-retries=10
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install MySQL client
+      - name: Install MySQL Client
         run: |
           sudo apt-get update
           sudo apt-get install -y mysql-client
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install Dependencies
+        run: npm ci
 
       - name: Wait for MySQL
         run: |
-          until mysqladmin ping -h127.0.0.1 -uroot -prootpass --silent; do
+          until mysqladmin ping \
+            -h127.0.0.1 \
+            -uroot \
+            -psupersecret \
+            --silent; do
             echo "Waiting for MySQL..."
             sleep 5
           done
 
-      - name: Run Flyway migrations
-        uses: flyway/flyway-action@v2
-        with:
-          url: jdbc:mysql://127.0.0.1:3306/testdb
-          user: testuser
-          password: testpass
-          locations: filesystem:./migrations
+      - name: Verify Database
+        run: |
+          mysql \
+            -h127.0.0.1 \
+            -uroot \
+            -psupersecret \
+            -e "SHOW DATABASES;"
 
-      - name: Run tests
-        env:
-          ENV: test
-          ENVIRONMENT: testing
+      - name: List Migration Files
+        run: |
+          ls -la migrations/flyway/migrations
 
-          MYSQL_HOST: 127.0.0.1
-          MYSQL_PORT: 3306
+      - name: Run Migrations
+        run: |
+          for file in migrations/flyway/migrations/*.sql; do
+            echo "Running $file"
+            mysql \
+              -h127.0.0.1 \
+              -uroot \
+              -psupersecret \
+              test_db < "$file"
+          done
 
-          # Use the same credentials as the MySQL service
-          MYSQL_USER: testuser
-          MYSQL_PASS: testpass
-          MYSQL_DB: testdb
+      - name: Run Tests
         run: npm test
