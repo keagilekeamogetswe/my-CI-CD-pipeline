@@ -2,43 +2,73 @@ name: Testing
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    env:
+      MYSQL_USER: ${{ secrets.MYSQL_USER }}
+      MYSQL_PASS: ${{ secrets.MYSQL_PASS }}
+      MYSQL_DB: ${{ secrets.MYSQL_DB }}
+
+      JWT_VERIFICATION_REQUEST_SECRET_KEY: ${{ secrets.JWT_VERIFICATION_REQUEST_SECRET_KEY }}
+      JWT_VERIFICATION_REQUEST_TTL: ${{ secrets.JWT_VERIFICATION_REQUEST_TTL }}
+
+      MONGO_USER: ${{ secrets.MONGO_USER }}
+      MONGO_PASS: ${{ secrets.MONGO_PASS }}
+      MONGO_PORT: ${{ secrets.MONGO_PORT }}
+      MONGO_DB: ${{ secrets.MONGO_DB }}
+      MONGO_MAX_POOL_SIZE: ${{ secrets.MONGO_MAX_POOL_SIZE }}
+
+      MYSQL_MAX_POOL_SIZE: ${{ secrets.MYSQL_MAX_POOL_SIZE }}
+      MYSQL_QUEUE_LIMIT: ${{ secrets.MYSQL_QUEUE_LIMIT }}
+
+      GRPC_USER_PORT: ${{ secrets.GRPC_USER_PORT }}
 
     services:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_PASS }}
-          MYSQL_DATABASE: ${{ secrets.MYSQL_DB }}
-          MYSQL_USER: ${{ secrets.MYSQL_USER }}
-          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASS }}
+          # NOTE: GitHub Actions does NOT support secrets here.
+          # Use literal values for the service container.
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: testdb
+          MYSQL_USER: testuser
+          MYSQL_PASSWORD: testpass
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h localhost -uroot -p${{ secrets.MYSQL_PASS }}"
+          --health-cmd="mysqladmin ping -h localhost -uroot -prootpass"
           --health-interval=10s
           --health-timeout=5s
-          --health-retries=3
+          --health-retries=5
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Install MySQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-client
 
       - name: Install dependencies
         run: npm install
 
       - name: Wait for MySQL
         run: |
-          until mysqladmin ping -h127.0.0.1 -uroot -p${{ secrets.MYSQL_PASS }} --silent; do
+          until mysqladmin ping -h127.0.0.1 -uroot -prootpass --silent; do
             echo "Waiting for MySQL..."
             sleep 5
           done
@@ -46,31 +76,21 @@ jobs:
       - name: Run Flyway migrations
         uses: flyway/flyway-action@v2
         with:
-          url: jdbc:mysql://127.0.0.1:3306/${{ secrets.MYSQL_DB }}
-          user: ${{ secrets.MYSQL_USER }}
-          password: ${{ secrets.MYSQL_PASS }}
+          url: jdbc:mysql://127.0.0.1:3306/testdb
+          user: testuser
+          password: testpass
           locations: filesystem:./migrations
 
       - name: Run tests
         env:
           ENV: test
           ENVIRONMENT: testing
-          JWT_VERIFICATION_REQUEST_SECRET_KEY: ${{ secrets.JWT_VERIFICATION_REQUEST_SECRET_KEY }}
-          JWT_VERIFICATION_REQUEST_TTL: ${{ secrets.JWT_VERIFICATION_REQUEST_TTL }}
 
-          MONGO_USER: ${{ secrets.MONGO_USER }}
-          MONGO_PASS: ${{ secrets.MONGO_PASS }}
-          MONGO_PORT: ${{ secrets.MONGO_PORT }}
-          MONGO_DB: ${{ secrets.MONGO_DB }}
-          MONGO_MAX_POOL_SIZE: ${{ secrets.MONGO_MAX_POOL_SIZE }}
-
-          MYSQL_USER: ${{ secrets.MYSQL_USER }}
-          MYSQL_PASS: ${{ secrets.MYSQL_PASS }}
           MYSQL_HOST: 127.0.0.1
           MYSQL_PORT: 3306
-          MYSQL_DB: ${{ secrets.MYSQL_DB }}
-          MYSQL_MAX_POOL_SIZE: ${{ secrets.MYSQL_MAX_POOL_SIZE }}
-          MYSQL_QUEUE_LIMIT: ${{ secrets.MYSQL_QUEUE_LIMIT }}
 
-          GRPC_USER_PORT: ${{ secrets.GRPC_USER_PORT }}
+          # Use the same credentials as the MySQL service
+          MYSQL_USER: testuser
+          MYSQL_PASS: testpass
+          MYSQL_DB: testdb
         run: npm test
