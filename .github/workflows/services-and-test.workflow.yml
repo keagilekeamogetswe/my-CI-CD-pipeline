@@ -1,4 +1,4 @@
-name: Testing
+name: Set up services and run tests
 
 on:
   push:
