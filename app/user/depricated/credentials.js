@@ -1,6 +1,6 @@
 import argon2 from "argon2";
 import * as jose from "jose";
-import { JWTHelper } from "../utility/jwt";
+import { JWTHelper } from "../../utility/jwt";
 class User {
   hashed_password;
   constructor(username, user_id = null) {
