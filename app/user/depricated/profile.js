@@ -1,5 +1,5 @@
 import UserProfileRepository from "./profile.repository.js";
-import defaults from "./config/profile.defaults.js";
+import defaults from "../config/profile.defaults.js";
 export class UserProfile {
   constructor(sqlConnection, mongoCollection) {
     this.repository = new UserProfileRepository(sqlConnection, mongoCollection);
