@@ -112,6 +112,8 @@ describe("Verification", () => {
 
     expect(token).toBeTypeOf("string");
     expect(verification_request_decoded).toBeDefined();
-    expect(verification_request_decoded).toMatchObject(decoded);
+    Object.keys(decoded).forEach((key) => {
+    expect(Object.keys(verification_request_decoded)).toContain(key);
+    })
   });
 });

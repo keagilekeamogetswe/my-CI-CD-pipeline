@@ -1,5 +1,7 @@
 import * as jose from "jose";
 import argon2 from "argon2";
+import crypto from "crypto"
+
 
 export const JWTHelper = (() => {
   return {
@@ -8,6 +10,7 @@ export const JWTHelper = (() => {
       const jwt = await new jose.SignJWT(payload)
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()
+        .setJti(crypto.randomUUID())
         .setExpirationTime(exp) // e.g. "2h" or numeric timestamp
         .sign(key);
       return jwt;
