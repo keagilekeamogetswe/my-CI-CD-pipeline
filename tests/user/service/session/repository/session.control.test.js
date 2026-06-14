@@ -92,4 +92,20 @@ describe("UserRepository: Testing Session control on DB ", () => {
     expect(Date(row.revoked_at)).toStrictEqual(Date(row.expires_at))
 
   })
+  it("Should revoke all sessions for a specific user", async () => {
+    //They previous test has only removed one session from the three it create on this one we will remove all of them them since they belong to one use
+    //-----------------------------------
+    //Seletect session of the user_id
+    const select_query = "SELECT * FROM user_session WHERE user_id = ? AND revoked_at = NULL"
+    const [before_rows] = await mysql_connection.execute(select_query, [user_id,])??[];
+    // We're removing jti_to_removed
+    const status = await session_control.EndAllSessions(user_id)
+
+    const [rows] = await mysql_connection.execute(select_query, [user_id])??[];
+    for(const [index, row] of Object.entries(rows)){
+      expect(before_rows[index].revoked_at).toBeNull()
+      expect(row.revoked_at).toStrictEqual(row.expires_at)
+    }
+    expect(status).toBe(true)
+  })
 });
