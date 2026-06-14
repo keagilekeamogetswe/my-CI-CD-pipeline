@@ -8,6 +8,7 @@ CREATE TABLE user_session (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP NOT NULL,
     revoked_at TIMESTAMP NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     fp_hash VARCHAR(255) NOT NULL,
     session_type ENUM("primary", "web") NOT NULL DEFAULT "primary",
     FOREIGN KEY (user_id)
