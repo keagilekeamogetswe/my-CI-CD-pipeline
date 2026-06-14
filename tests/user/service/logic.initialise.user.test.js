@@ -87,7 +87,8 @@ describe("User initialiseUserAccount",  () => {
     mysql_connection.commit = vi.fn().mockResolvedValue(undefined);
 
     const user_sessiont_instance=  new UserSessionService(mysql_connection);
-    const refresh_token = await user_sessiont_instance.setPasswordToUserSessionStart(set_pass_token, user_password)
+    const [ device_info, device_fingerprint] = [ "testing mobile device", {passing_fp:{}, active_fp:{}}]
+    const refresh_token = await user_sessiont_instance.setPasswordToUserSessionStart(set_pass_token, user_password, {IPv4, device_info, device_fingerprint})
     //reseting the back to originals
     mysql_connection.beginTransaction = mysql_original_begin_trasaction_call;
     mysql_connection.commit = mysql_original_commit_trasaction_call;
@@ -96,6 +97,9 @@ describe("User initialiseUserAccount",  () => {
     expect(Object.keys(user_session_payload)).toContain("user_id")
     expect(Object.keys(user_session_payload)).toContain("profile_id")
     expect(Object.keys(user_session_payload)).toContain("phone_id")
+    expect(Object.keys(user_session_payload)).toContain("IPv4")
+    expect(Object.keys(user_session_payload)).toContain("jti")
+
     const {user_id, profile_id, phone_id } = user_session_payload
     //Testif the user is created and that the profile exists
         // Verify user_credentials has phone_id set
@@ -114,6 +118,13 @@ describe("User initialiseUserAccount",  () => {
     expect(profile_row.lastname).toEqual(lastname);
     expect(profile_row.user_id).toEqual(user_id);
     expect(profile_row.phone_id).toEqual(phone_id);
+   await new Promise(resolve => setTimeout(resolve, 500)); // wait half a second
+  const [[session]] = await mysql_connection.execute("SELECT * FROM user_session WHERE user_id = ? AND jti = ? ;", [user_id, user_session_payload.jti]);
+  expect(session.jti).toBe(user_session_payload.jti);
+  expect(session.session_type).toBe("primary")
+  expect(Date(session.created_at)).toStrictEqual(Date(user_session_payload.iat))
+
   })
+
 
 })
