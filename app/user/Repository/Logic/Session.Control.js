@@ -38,7 +38,12 @@ export default class SessionControl {
     return insertId!=undefined ? true: false;
   }
   async revokeSession(user_id, jti){
+    const revoke_at = new Date().toISOString().substring(0,19).replace("T"," ")
+    const expires_at = new Date().toISOString().substring(0,19).replace("T"," ")
 
+    const revoke_query = "UPDATE user_session SET revoked_at = ?, expires_at =? WHERE user_id = ? AND  jti = ?"
+    const [result]=await this.mysql_connection.execute(revoke_query, [revoke_at, expires_at, user_id, jti]);
+    return (result.changedRows) ? true: false
   }
   async EndAllSessions(user_id){}
 }
