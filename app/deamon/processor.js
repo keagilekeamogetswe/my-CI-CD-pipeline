@@ -1,7 +1,7 @@
 import { Database } from "./db";
 import ProcessorQueries from "./queries/processor";
 import registry from "./registry";
-import ReportProcess from "./report";
+// import ReportProcess from "./report
 
 const JobProcessor = (() => {
   let mysql_connection;
@@ -14,7 +14,6 @@ const JobProcessor = (() => {
   async function claim_job() {
     checkConnection();
     await mysql_connection.beginTransaction();
-
     // Lock next eligible job row
     const [locked] = await mysql_connection.execute(ProcessorQueries.lock);
     if (locked.length === 0) {
