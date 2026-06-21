@@ -91,33 +91,37 @@ describe("Database testing: New migrated version.", () => {
     expect(selected_code_id).toBeDefined();
     expect(rows_affected).toBeTruthy();
   });
-it("Should throw an error if the user_credential is deleted with nullified phone_id", async () => {
-  const query_delete_user = "DELETE FROM user_credentials WHERE id = ?";
+  it("Should throw an error if the user_credential is deleted with nullified phone_id", async () => {
+    const query_delete_user = "DELETE FROM user_credentials WHERE id = ?";
 
-  // Check the phone_id first
-  const [[row]] = await mysql_connection.execute(
-    "SELECT phone_id FROM user_credentials WHERE id = ?",
-    [user_id]
-  );
-  if (!row.phone_id) {
-    console.log("phone_id is null: ", { phone_id: row.phone_id, user_id });
-  }
-  await expect(
-    mysql_connection.execute(query_delete_user, [user_id])
-  ).rejects.toThrow();
-});
+    // Check the phone_id first
+    const [[row]] = await mysql_connection.execute(
+      "SELECT phone_id FROM user_credentials WHERE id = ?",
+      [user_id],
+    );
+    if (!row.phone_id) {
+      console.log("phone_id is null: ", { phone_id: row.phone_id, user_id });
+    }
+    await expect(
+      mysql_connection.execute(query_delete_user, [user_id]),
+    ).rejects.toThrow();
+  });
 
   it("Should now delete the user_credential after nullifying the phone_id", async () => {
-    const update_query = "UPDATE user_credentials SET phone_id = null WHERE id = ?";
+    const update_query =
+      "UPDATE user_credentials SET phone_id = null WHERE id = ?";
     const delete_query = "DELETE FROM user_credentials WHERE id = ?";
-    const [update_result] = await mysql_connection.execute(update_query, [user_id]);
+    const [update_result] = await mysql_connection.execute(update_query, [
+      user_id,
+    ]);
     const rows_affected_update = update_result.affectedRows;
     if (!rows_affected_update) console.log("update failure: ", { user_id });
     expect(rows_affected_update).toBeTruthy();
-    const [delete_result] = await mysql_connection.execute(delete_query, [user_id]);
+    const [delete_result] = await mysql_connection.execute(delete_query, [
+      user_id,
+    ]);
     const rows_affected_delete = delete_result.affectedRows;
     if (!rows_affected_delete) console.log("delete failure: ", { user_id });
     expect(rows_affected_delete).toBeTruthy();
-  })
-
+  });
 });
