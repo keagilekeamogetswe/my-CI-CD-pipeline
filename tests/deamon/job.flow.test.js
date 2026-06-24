@@ -65,7 +65,6 @@ describe("Job flow testing", async () => {
     const job_type = "session.save";
     const job = registry.jobs[job_type];
 
-    JobProcessor.setConnection(mysql_connection);
     RequirementResolver.setupResolver("mysql_connection", mysql_connection);
 
     const job_retrieved = await JobProcessor.claim_job();
