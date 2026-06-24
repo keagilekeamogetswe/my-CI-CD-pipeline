@@ -1,17 +1,19 @@
-import { Database } from "./db";
+import RequirementResolver from "./actions/dependency/requirement.resolver";
 import ProcessorQueries from "./queries/processor";
 import registry from "./registry";
 // import ReportProcess from "./report
 
 const JobProcessor = (() => {
   let mysql_connection;
-  function setConnection(connection) {
-    mysql_connection = connection;
-  }
+  // Kept for tests that still use this method
+
   function checkConnection() {
     if (!mysql_connection) throw new Error("Connection not set");
   }
   async function claim_job() {
+    mysql_connection = RequirementResolver.resolve({ mysql_connection: true })[
+      "mysql_connection"
+    ];
     checkConnection();
     await mysql_connection.beginTransaction();
     // Lock next eligible job row
@@ -42,7 +44,10 @@ const JobProcessor = (() => {
     const job_run_status = await Promise.race([
       handler(job.payload),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Timeout")), rules.timeout),
+        setTimeout(
+          () => reject(new Error("Timeout")),
+          rules.timeout || job.timeout,
+        ),
       ),
     ]);
     return job_run_status;
@@ -70,7 +75,7 @@ const JobProcessor = (() => {
       }
     }
   }
-  return { setConnection, claim_job, run_job };
+  return { claim_job, run_job };
 })();
 
 export default JobProcessor;
