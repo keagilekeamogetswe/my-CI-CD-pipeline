@@ -69,7 +69,11 @@ describe("Job flow testing", async () => {
     RequirementResolver.setupResolver("mysql_connection", mysql_connection);
 
     const job_retrieved = await JobProcessor.claim_job();
-    await JobProcessor.run_job(job_retrieved);
+    const job_return = await JobProcessor.run_job(job_retrieved);
+    const intrinsic = { ...job_return.intrinsic };
+    console.log(intrinsic);
+    expect(job_return.success).toBeTruthy();
+    expect(intrinsic.insertId).toBeDefined();
   });
 
   it("Should excute job and fail.", async () => {
