@@ -23,9 +23,9 @@ class Registry {
 
       for (const [actionName, handlerFn] of Object.entries(handlers)) {
         const jobName = `${namespace}.${actionName}`;
-        const handler_interception = async () => {
+        const handler_interception = async (payload) => {
           try {
-            const intrinsic = await handlerFn();
+            const intrinsic = await handlerFn(payload);
             return { intrinsic, success: true };
           } catch (e) {
             return { success: false, intrinsic: e };
