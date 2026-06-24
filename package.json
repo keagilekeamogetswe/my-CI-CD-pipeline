@@ -19,6 +19,7 @@
   "dependencies": {
     "@grpc/grpc-js": "^1.14.4",
     "@grpc/proto-loader": "^0.8.1",
+    "amqplib": "^2.0.1",
     "argon2": "^0.44.0",
     "express": "^5.2.1",
     "jose": "^6.2.3",

@@ -52,7 +52,31 @@ jobs:
             echo "Waiting for MySQL..."
             sleep 5
           done
+      # Start RabbitMQ and install delayed plugin
+      - name: Start RabbitMQ with delayed plugin
+        run: |
+          docker rm -f rabbitmq || true
+          docker run -d --name rabbitmq \
+            -p 5672:5672 -p 15672:15672 \
+            rabbitmq:3.13-management
 
+          # Install plugin
+          docker exec rabbitmq bash -c "apt-get update && apt-get install -y wget && \
+            wget -O /plugins/rabbitmq_delayed_message_exchange-3.13.0.ez \
+            https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/releases/download/v3.13.0/rabbitmq_delayed_message_exchange-3.13.0.ez"
+
+          # Enable plugin
+          docker exec rabbitmq rabbitmq-plugins enable rabbitmq_delayed_message_exchange
+
+          # Restart to load plugin
+          docker restart rabbitmq
+
+      - name: Wait for RabbitMQ
+        run: |
+          until nc -z 127.0.0.1 5672; do
+            echo "Waiting for RabbitMQ..."
+            sleep 5
+          done
       - name: Run Flyway migrations (Docker)
         run: |
           docker run --rm \
