@@ -79,7 +79,6 @@ describe("Testing the Scheduler flow", () => {
     const retrieved_job = await JobProcessor.claim_job();
     // Run a failing job
     const run_job_result = await JobProcessor.run_job(retrieved_job);
-    console.log("run status", run_job_result);
     if (run_job_result.success) {
       // Set job to success on db
       const { mysql_connection } = RequirementResolver.resolve({
@@ -124,6 +123,27 @@ describe("Testing the Scheduler flow", () => {
     const computed_job = await Scheduler.recompute(result);
     computed_job.attempts += 1;
     const job_run_status = await JobProcessor.run_job(computed_job);
+<<<<<<< test-ci-pull-request
+    console.log(computed_job);
     console.log(job_run_status);
+    const [[session_data]] = await mysql_connection.execute(
+      "SELECT * FROM user_session WHERE id = ?",
+      [job_run_status.intrinsic.insertId],
+    );
+    console.log("session: ", session_data);
+    // better assertions: verify job ran successfully and DB row matches payload fields
+    expect(job_run_status).toBeDefined();
+    expect(job_run_status).toHaveProperty("success", true);
+    // session_data may include extra DB columns; assert it contains payload fields
+    // Normalize and compare expires_at as ISO strings to avoid format mismatches
+    const payload = { ...computed_job.payload };
+    if (payload.expires_at) {
+      const expected = new Date(payload.expires_at).toISOString();
+      const actual = new Date(session_data.expires_at).toISOString();
+      expect(actual).toBe(expected);
+      delete payload.expires_at;
+    }
+    expect(session_data).toMatchObject(payload);
+
   }, 10000);
 });
