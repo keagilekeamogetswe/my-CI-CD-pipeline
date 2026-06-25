@@ -4,15 +4,14 @@ import { Database } from "../../app/deamon/db";
 import amqp from "amqplib";
 import JobProcessor from "../../app/deamon/processor";
 import RequirementResolver from "../../app/deamon/actions/dependency/requirement.resolver";
-import { afterEach, before, beforeEach } from "vitest";
 import Scheduler from "../../app/deamon/scheduler";
 
 describe("Testing the Scheduler flow", () => {
   let conn;
   let channel;
-  let exchange;
-  let routing_key;
-  const queue = process.env.RMQ_DELAYED_QUEUE;
+  const queue = process.env.RMQ_DELAYED_QUEUE || "jobs";
+  const exchange = process.env.RMQ_DELAYED_EXCHANGE || "delayed.jobs";
+  const routingKey = "jobs";
   let mysql_connection;
   let originalMethods;
   let user_id;
@@ -39,11 +38,11 @@ describe("Testing the Scheduler flow", () => {
       }'
     );`;
     await mysql_connection.execute(job_insert_query);
+
     originalMethods = {
       rollback: mysql_connection.rollback.bind(mysql_connection),
       commit: mysql_connection.commit.bind(mysql_connection),
-      beginTransaction:
-        mysql_connection.beginTransaction.bind(mysql_connection),
+      beginTransaction: mysql_connection.beginTransaction.bind(mysql_connection),
       close: mysql_connection.close.bind(mysql_connection),
     };
     // Intercept transaction states to prevent individual tests from auto-committing modifications
@@ -55,16 +54,19 @@ describe("Testing the Scheduler flow", () => {
     //Rabbit MQ Configuration
     conn = await amqp.connect("amqp://localhost");
     channel = await conn.createChannel();
-    const delayed_exchange = (exchange = process.env.RMQ_DELAYED_EXCHANGE);
-    const delayed_queue = (routing_key = process.env.RMQ_DELAYED_QUEUE);
-    await channel.assertQueue(queue);
-    await channel.assertExchange(delayed_exchange, "x-delayed-message", {
+
+    await channel.assertQueue(queue, { durable: true });
+    await channel.assertExchange(exchange, "x-delayed-message", {
       durable: true,
       arguments: { "x-delayed-type": "direct" },
     });
+    await channel.bindQueue(queue, exchange, routingKey); // bind once here
   });
+
   afterAll(async () => {
     try {
+      await channel?.close();
+      await conn?.close();
       // Revert all structural mutations and safely free connection pools
       await originalMethods.rollback();
       await originalMethods.close();
@@ -72,6 +74,7 @@ describe("Testing the Scheduler flow", () => {
       console.error(error);
     }
   });
+
   it("Should fail a job run then schedule", async () => {
     vi.spyOn(JobProcessor, "run_job").mockResolvedValueOnce({
       success: false,
@@ -79,17 +82,20 @@ describe("Testing the Scheduler flow", () => {
     const retrieved_job = await JobProcessor.claim_job();
     // Run a failing job
     const run_job_result = await JobProcessor.run_job(retrieved_job);
+    console.log("run status", run_job_result);
+
     if (run_job_result.success) {
       // Set job to success on db
       const { mysql_connection } = RequirementResolver.resolve({
         mysql_connection: true,
       });
       await mysql_connection.execute(
-        "UPDATE set status = 'done' where id = ?",
+        "UPDATE jobs set status = 'done' where id =?", // FIXED: was "UPDATE set"
         [retrieved_job.id],
       );
       return null;
     }
+
     console.log("going");
     // failed jobs here...
     // step 1: computerise job
@@ -101,18 +107,17 @@ describe("Testing the Scheduler flow", () => {
     const { retries, attempts } = computed_job;
     await channel.publish(
       exchange,
-      routing_key,
+      routingKey,
       Buffer.from(JSON.stringify(computed_job)),
-      { headers: { "x-delay": retries[attempts] } },
+      { headers: { "x-delay": retries[attempts] || 1000 } },
     );
   });
+
   it("Should run a scheduled job", async () => {
     const messages = [];
 
-    // Bind queue to exchange with routing key
-    await channel.bindQueue(queue, exchange, routing_key);
     const consumePromise = new Promise((resolve) => {
-      channel.consume(routing_key, (msg) => {
+      channel.consume(queue, (msg) => { // FIXED: use queue, not routing_key
         messages.push(msg.content.toString());
         channel.ack(msg);
         resolve(messages);
@@ -120,23 +125,26 @@ describe("Testing the Scheduler flow", () => {
     });
 
     const result = await consumePromise;
-    const computed_job = await Scheduler.recompute(result);
+    const computed_job = await Scheduler.recompute(JSON.parse(result[0])); // FIXED: parse JSON
     computed_job.attempts += 1;
     const job_run_status = await JobProcessor.run_job(computed_job);
-<<<<<<< test-ci-pull-request
+
     console.log(computed_job);
     console.log(job_run_status);
+
     const [[session_data]] = await mysql_connection.execute(
-      "SELECT * FROM user_session WHERE id = ?",
+      "SELECT * FROM user_session WHERE id =?",
       [job_run_status.intrinsic.insertId],
     );
     console.log("session: ", session_data);
+
     // better assertions: verify job ran successfully and DB row matches payload fields
     expect(job_run_status).toBeDefined();
     expect(job_run_status).toHaveProperty("success", true);
+
     // session_data may include extra DB columns; assert it contains payload fields
     // Normalize and compare expires_at as ISO strings to avoid format mismatches
-    const payload = { ...computed_job.payload };
+    const payload = {...computed_job.payload };
     if (payload.expires_at) {
       const expected = new Date(payload.expires_at).toISOString();
       const actual = new Date(session_data.expires_at).toISOString();
@@ -144,6 +152,5 @@ describe("Testing the Scheduler flow", () => {
       delete payload.expires_at;
     }
     expect(session_data).toMatchObject(payload);
-
   }, 10000);
 });
