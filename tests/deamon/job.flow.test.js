@@ -58,6 +58,7 @@ describe("Job flow testing", async () => {
     } catch (error) {
       console.error(error);
     }
+    await new Promise(resolve => setTimeout(resolve, 4000));
   });
 
   it("should execute job successfully", async () => {

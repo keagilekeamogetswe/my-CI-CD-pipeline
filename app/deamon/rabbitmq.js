@@ -5,7 +5,7 @@ let connection;
 let channel;
 
 export const RabbitMQ = {
-  getChannel: async () => {
+  getChannel: async (delay_mode = true) => {
     if (!connection) {
       // Build connection options depending on environment
       const options =
@@ -30,6 +30,9 @@ export const RabbitMQ = {
 
     if (!channel) {
       channel = await connection.createChannel();
+      if (!delay_mode) {
+        return channel;
+      }
 
       const exchange = process.env.RMQ_DELAYED_EXCHANGE;
       const queue = process.env.RMQ_DELAYED_QUEUE;
