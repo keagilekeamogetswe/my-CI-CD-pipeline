@@ -76,6 +76,8 @@ describe("Testing the Scheduler flow with consumer_logic", () => {
     } catch (error) {
       console.error(error);
     }
+    await new Promise(resolve => setTimeout(resolve, 4000));
+
   });
 
   it("Should fail a job run then schedule via consumer_logic", async () => {
