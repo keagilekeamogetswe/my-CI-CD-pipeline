@@ -79,6 +79,9 @@ describe("Testing the Scheduler flow", () => {
     const retrieved_job = await JobProcessor.claim_job();
     // Run a failing job
     const run_job_result = await JobProcessor.run_job(retrieved_job);
+
+    console.log("run status", run_job_result);
+
     if (run_job_result.success) {
       // Set job to success on db
       const { mysql_connection } = RequirementResolver.resolve({
