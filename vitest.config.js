@@ -19,7 +19,7 @@ export default defineConfig({
     exclude: [
       ...configDefaults.exclude,
       "**/deprecated/**",
-      "**/tests/**/.ingore", // Note: typo in your config '.ignore'?
+      "**/tests/**/.ignore",
       "**/tests/**/deprecated/**",
     ],
     envFiles: ["**/tests/.env"],
