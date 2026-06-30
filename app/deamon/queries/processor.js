@@ -21,32 +21,19 @@ const ProcessorQueries = {
   // Mark job as completed successfully
   complete: `
     UPDATE jobs
-    SET status = 'completed',
-        result = ?,
+    SET status = 'done',
         updated_at = NOW()
     WHERE id = ?;
   `,
-
-  // Retry job with new next_run_at
-  retry: `
-    UPDATE jobs
-    SET status = 'retrying',
-        attempt_count = ?,
-        next_run_at = ?,
-        error = ?,
-        updated_at = NOW()
-    WHERE id = ?;
-  `,
-
   // Mark job as dead letter
-  deadLetter: `
+  falied: `
     UPDATE jobs
-    SET status = 'dead_letter',
+    SET status = 'failed',
         attempt_count = ?,
         error = ?,
         updated_at = NOW()
     WHERE id = ?;
-  `
+  `,
 };
 
 export default ProcessorQueries;
