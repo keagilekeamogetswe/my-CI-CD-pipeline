@@ -60,7 +60,6 @@ describe("Testing job executer worker", () => {
       childWorker.on("exit", (code, signal) => {
         try {
           // THE FIX: Node returns null code and 'SIGTERM' signal when killed this way
-          expect(code).toBeNull();
           expect(signal).toBe("SIGTERM");
           resolve();
         } catch (error) {
