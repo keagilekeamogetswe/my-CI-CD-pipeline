@@ -76,8 +76,7 @@ describe("Testing the Scheduler flow with consumer_logic", () => {
     } catch (error) {
       console.error(error);
     }
-    await new Promise(resolve => setTimeout(resolve, 4000));
-
+    await new Promise((resolve) => setTimeout(resolve, 4000));
   });
 
   it("Should fail a job run then schedule via consumer_logic", async () => {
@@ -85,6 +84,9 @@ describe("Testing the Scheduler flow with consumer_logic", () => {
 
     const retrieved_job = await JobProcessor.claim_job();
     const computed_job = Scheduler.compute(retrieved_job);
+    // Prevent the job trigger from setting status to running on first attempt
+    computed_job["attempts"] = 2; // A direct change to this will trigger a databsase write to update the job status to scheduled
+    await new Promise((resolve) => setTimeout(resolve, 1500)); // Safe delay to ensure the job status is updated in the database
 
     const result = await Scheduler.schedule_job(computed_job);
 
