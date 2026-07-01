@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-describe("Testing job executer worker", () => {
+describe.sequential("Testing job executer worker", () => {
   let childWorker = null;
 
   afterEach(() => {
