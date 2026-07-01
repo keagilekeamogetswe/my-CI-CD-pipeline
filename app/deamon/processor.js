@@ -57,7 +57,12 @@ const JobProcessor = (() => {
         ),
       ]);
       if (job_run_status.success)
-        await mysql_connection.execute(ProcessorQueries.complete, [job.id]);
+        try {
+          await mysql_connection.execute(ProcessorQueries.complete, [job.id]);
+        } catch (err) {
+          console.error(err);
+          return null;
+        }
 
       return job_run_status;
     } catch (error) {
