@@ -1,4 +1,4 @@
-import { test, expect, describe, it, afterEach, vi } from "vitest";
+import { test, expect, describe, it, afterEach, beforeEach, vi } from "vitest";
 import { fork } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -13,11 +13,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  */
 describe.sequential("Testing job executer worker", () => {
   let childWorker = null;
-
+  beforeEach(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+  });
   /**
    * PRODUCTION CONSIDERATION:
    * Explicit process termination prevents zombie child worker retention.
-   * A 3000ms delay guarantees the OS fully releases file descriptors,
+   * A 5000ms delay guarantees the OS fully releases file descriptors,
    * database socket allocations, and bound process ports prior to subsequent test initialization.
    */
   afterEach(async () => {
