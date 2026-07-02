@@ -17,6 +17,13 @@ const ProcessorQueries = {
         updated_at = NOW()
     WHERE id = ?;
   `,
+  release: `
+    UPDATE jobs
+    SET status = 'queued',
+      attempts = GREATEST(attempts - 1, 0),
+      updated_at = NOW()
+    WHERE id = ?;
+`,
 
   // Mark job as completed successfully
   complete: `

@@ -72,10 +72,20 @@ const JobProcessor = (() => {
       };
     }
   }
+  async function release_job(job) {
+    mysql_connection = RequirementResolver.resolve({
+      mysql_connection: true,
+    }).mysql_connection;
+    const [release] = await mysql_connection.execute(ProcessorQueries.release, [
+      job.id,
+    ]);
+    return release.affectedRows == 1;
+  }
 
   return {
     claim_job,
     run_job,
+    release_job,
   };
 })();
 

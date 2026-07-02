@@ -22,6 +22,7 @@
     "amqplib": "^2.0.1",
     "argon2": "^0.44.0",
     "express": "^5.2.1",
+    "extensionless": "^2.0.6",
     "jose": "^6.2.3",
     "mongodb": "^7.2.0",
     "mysql2": "^3.22.4",

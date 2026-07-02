@@ -1,7 +1,5 @@
 import { describe, it, beforeAll, afterAll, expect } from "vitest";
 import dotenv from "dotenv";
-import grpc from "@grpc/grpc-js";
-import protoLoader from "@grpc/proto-loader";
 import { Database } from "../../app/user/db.js";
 import argon2 from "argon2";
 
@@ -14,12 +12,13 @@ describe("Database testing: New migrated version.", () => {
 
   beforeAll(async () => {
     mysql_connection = await Database.getSQLConnection();
-    mysql_connection.beginTransaction();
+    await mysql_connection.beginTransaction();
   });
 
   afterAll(async () => {
     if (mysql_connection) {
       await mysql_connection.rollback();
+      await mysql_connection.end();
     }
   });
 
@@ -32,21 +31,25 @@ describe("Database testing: New migrated version.", () => {
       ["FRC", "33", "France"],
     ];
 
-    await new Promise((resolve) => {
-      entries.forEach(async (entry, index) => {
-        const [ABR, code, _] = entry;
-        const [{ insertId }] = await mysql_connection.execute(query, entry);
-        countries[ABR.toLowerCase()] = insertId;
-        if (entries.length == index + 1) resolve();
-      });
-    });
+    /**
+     * PRODUCTION CONSIDERATION:
+     * Replaced an uncontrolled 'forEach' wrapper loop with an explicit 'for...of' loop.
+     * Array.prototype.forEach executes concurrently and does not respect 'await',
+     * which causes query race conditions and premature Promise resolution hooks.
+     */
+    for (const entry of entries) {
+      const [ABR] = entry;
+      const [{ insertId }] = await mysql_connection.execute(query, entry);
+      countries[ABR.toLowerCase()] = insertId;
+    }
+
     console.log("length: ", Object.keys(countries).length);
     Object.values(countries).forEach((insertID) =>
       expect(insertID).toBeDefined(),
     );
   });
+
   it("Should insert user and initialise the profile", async () => {
-    // Insertion for user_credentials
     const password_hash = await argon2.hash("testing_password");
     const query_insert_user =
       "INSERT INTO user_credentials(password_hash) VALUES(?)";
@@ -54,10 +57,10 @@ describe("Database testing: New migrated version.", () => {
       password_hash,
     ]);
     user_id = user_result.insertId;
+
     const query_insert_phone =
       "INSERT INTO phone_numbers(dial_code_id, phone_body, initiated_by) VALUES (?, ?, ?)";
 
-    // Select one of the countries at random: only relevant in testing environment
     const selected_code_id =
       Object.values(countries)[
         Math.floor(Math.random() * Object.keys(countries).length)
@@ -71,37 +74,50 @@ describe("Database testing: New migrated version.", () => {
       user_id,
     ]);
     const phone_id = result_phone.insertId;
-    // Updating the phone number id on user-credentials
-    const query_update_user = "UPDATE user_credentials SET phone_id = ?";
+
+    /**
+     * PRODUCTION CONSIDERATION:
+     * Fixed critical table-wide deadlock.
+     * Appended the missing 'WHERE id = ?' filtering constraint target.
+     * Executing an update query missing a filter clause forces an exclusive write-lock
+     * across the entire table space, freezing uncommitted relational transaction records.
+     */
+    const query_update_user =
+      "UPDATE user_credentials SET phone_id = ? WHERE id = ?";
     const [result_update_phone] = await mysql_connection.execute(
       query_update_user,
-      [phone_id],
+      [phone_id, user_id],
     );
+
     const rows_affected = result_update_phone.affectedRows;
-    // check affected rows
-    if (!rows_affected | !phone_id | !user_id)
+
+    if (!rows_affected || !phone_id || !user_id) {
       console.log("operation failure: ", {
         rows_affected,
         phone_id,
         user_id,
         dial_code_id: selected_code_id,
       });
+    }
+
     expect(user_id).toBeDefined();
     expect(phone_id).toBeDefined();
     expect(selected_code_id).toBeDefined();
     expect(rows_affected).toBeTruthy();
   });
+
   it("Should throw an error if the user_credential is deleted with nullified phone_id", async () => {
     const query_delete_user = "DELETE FROM user_credentials WHERE id = ?";
 
-    // Check the phone_id first
     const [[row]] = await mysql_connection.execute(
       "SELECT phone_id FROM user_credentials WHERE id = ?",
       [user_id],
     );
-    if (!row.phone_id) {
-      console.log("phone_id is null: ", { phone_id: row.phone_id, user_id });
+
+    if (!row || !row.phone_id) {
+      console.log("phone_id is null: ", { phone_id: row?.phone_id, user_id });
     }
+
     await expect(
       mysql_connection.execute(query_delete_user, [user_id]),
     ).rejects.toThrow();
@@ -111,12 +127,14 @@ describe("Database testing: New migrated version.", () => {
     const update_query =
       "UPDATE user_credentials SET phone_id = null WHERE id = ?";
     const delete_query = "DELETE FROM user_credentials WHERE id = ?";
+
     const [update_result] = await mysql_connection.execute(update_query, [
       user_id,
     ]);
     const rows_affected_update = update_result.affectedRows;
     if (!rows_affected_update) console.log("update failure: ", { user_id });
     expect(rows_affected_update).toBeTruthy();
+
     const [delete_result] = await mysql_connection.execute(delete_query, [
       user_id,
     ]);
