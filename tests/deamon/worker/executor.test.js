@@ -13,9 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  */
 describe.sequential("Testing job executer worker", () => {
   let childWorker = null;
-  beforeEach(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-  });
+
   /**
    * PRODUCTION CONSIDERATION:
    * Explicit process termination prevents zombie child worker retention.
@@ -26,7 +24,6 @@ describe.sequential("Testing job executer worker", () => {
     if (childWorker && childWorker.connected) {
       childWorker.kill("SIGKILL");
     }
-    await new Promise((resolve) => setTimeout(resolve, 5000));
   });
 
   /**
