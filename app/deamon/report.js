@@ -70,7 +70,7 @@ const ReportProcess = (() => {
       html: `
         <h3>Job Failure</h3>
         <p><strong>Job ID:</strong> ${job.id}</p>
-        <p><strong>Name:</strong> ${job.name || "N/A"}</p>
+        <p><strong>Job Type:</strong> ${job.type || "N/A"}</p>
         <p><strong>Severity:</strong> ${job.severity}</p>
         <p><strong>Error:</strong> ${error.message || error}</p>
         <p><strong>Attempts:</strong> ${job.attempt_count || 0}</p>
@@ -81,9 +81,9 @@ const ReportProcess = (() => {
         </details>
       `,
       text:
-        `Job ${job.id} (${job.name}) failed.\n\n` +
+        `Job ${job} (${job}) failed.\n\n` +
         `Severity: ${job.severity}\n` +
-        `Error: ${error.message}\n` +
+        `Error: ${error}\n` +
         `Attempts: ${job.attempt_count}\n\n` +
         `Payload: ${JSON.stringify(job.payload)}`,
     };
