@@ -93,4 +93,4 @@ jobs:
           mysql -h127.0.0.1 -uroot -proot -e "SHOW TABLES;" testdb
 
       - name: Run tests
-        run: npm test
+        run: npx vitest -t "Report"
