@@ -8,7 +8,9 @@ console.log("Starting Dead Letter Consumer Worker...");
 process.on("message", (message) => {
   if (message === "GET_HEALTH") {
     // Apply a fast 100ms threshold during tests to prevent long-running timeouts
-    const threshold = process.env.ENV === "test" && 100;
+    const threshold =
+      process.env.ENV === "test" && process.env.WORKER_HEALTH_THRESHOLD;
+    
     let health;
     if (threshold) health = DeadLetterConsumer.checkHealth(threshold);
     else health = DeadLetterConsumer.checkHealth();
