@@ -4,6 +4,7 @@ import RequirementResolver from "./actions/dependency/requirement.resolver";
 import { SchedulerCalculator } from "./scheduler/calculater";
 import AttemptsProxyHandler from "./scheduler/attemps.proxy.handler";
 import registry from "./registry";
+import ReportProcess from "./report";
 
 const Scheduler = (() => {
   async function schedule_job(precomputed_job) {
@@ -83,23 +84,34 @@ const Scheduler = (() => {
         });
         // dead-letter path
         // Inside your RabbitMQ setup file
-        const exchange = "dlx_exchange"; // dead-letter exchange
-        const queue = "dead_letter"; // dead-letter queue
-        const routingKey = "dead_letter"; // binding key
+        const exchange = process.env.RMQ_DEAD_LETTER_EXCHANGE; // dead-letter exchange
+        const queue = process.env.RMQ_DEAD_LETTER_QUEUE; // dead-letter queue
+        const routingKey = process.env.RMQ_DEAD_LETTER_QUEUE; // binding key
 
         await none_delayed_channel.assertExchange(exchange, "direct", {
           durable: true,
         });
         await none_delayed_channel.assertQueue(queue, { durable: true });
         await none_delayed_channel.bindQueue(queue, exchange, routingKey);
+        //Remove payload before sending
+        delete computed_job.payload;
+        delete computed_job.retries;
+        delete computed_job.timeout;
 
         await none_delayed_channel.sendToQueue(
           process.env.RMQ_DEAD_LETTER_QUEUE,
-          Buffer.from(JSON.stringify(computed_job)),
+          Buffer.from(
+            JSON.stringify({
+              job: computed_job,
+              error: ReportProcess.compute_error(job_run_status.intrinsic),
+            }),
+            "utf8",
+          ),
           { persistent: true },
         );
       }
-      return { intricate: job_run_status, success: false };
+      const { intrinsic } = job_run_status;
+      return { intrinsic, success: false };
     }
   }
 

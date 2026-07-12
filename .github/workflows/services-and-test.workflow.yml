@@ -73,10 +73,11 @@ jobs:
 
       - name: Wait for RabbitMQ
         run: |
-          until nc -z 127.0.0.1 5672; do
-            echo "Waiting for RabbitMQ..."
+          until docker exec rabbitmq rabbitmqctl status; do
+            echo "Waiting for RabbitMQ to be fully ready..."
             sleep 5
           done
+
       - name: Run Flyway migrations (Docker)
         run: |
           docker run --rm \
@@ -91,6 +92,23 @@ jobs:
       - name: Verify DB
         run: |
           mysql -h127.0.0.1 -uroot -proot -e "SHOW TABLES;" testdb
+      - name: Start Mailpit
+        run: |
+          docker rm -f mailpit || true
+          docker run -d --name mailpit \
+            -p 1025:1025 -p 8025:8025 \
+            axllent/mailpit
+
+      - name: Wait for Mailpit
+        run: |
+          until nc -z 127.0.0.1 1025; do
+            echo "Waiting for Mailpit SMTP..."
+            sleep 5
+          done
+          until nc -z 127.0.0.1 8025; do
+            echo "Waiting for Mailpit Web UI..."
+            sleep 5
+          done
 
       - name: Run tests
-        run: npm test
+        run: npx vitest -t "Report"
