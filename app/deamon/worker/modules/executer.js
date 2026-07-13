@@ -7,6 +7,7 @@ const RealtimeJobExecuter = (() => {
   let run_state = "stopped";
   let heartbeat = Date.now();
   let default_heartbeat_timeout_ms = 30000;
+  const default_health_threshold = 3000;
 
   /**
    * Updates telemetry variables synchronously across state transitions.
@@ -82,12 +83,10 @@ const RealtimeJobExecuter = (() => {
      * @param {number} customThresholdMs - Maximum allowed duration in milliseconds between loop cycles before declaring a deadlock
      * @returns {Object} Metric payload representing daemon health status
      */
-    checkHealth: () => {
-      const now = Date.now();
-      const elapsed = now - heartbeat;
-
+    checkHealth: (customThresholdMs = default_health_threshold) => {
+      const elapsed = Date.now() - heartbeat;
       return {
-        healthy: isRunning && elapsed < default_heartbeat_timeout_ms,
+        healthy: isRunning && elapsed < customThresholdMs,
         isRunning,
         run_state,
         elapsedMs: elapsed,

@@ -7,8 +7,11 @@ import RealtimeJobExecuter from "./modules/executer.js";
 process.on("message", (message) => {
   if (message === "GET_HEALTH") {
     // Apply a fast 100ms threshold during tests to prevent long-running timeouts
-    const threshold = process.env.NODE_ENV === "test" ? 100 : 30000;
-    const health = RealtimeJobExecuter.checkHealth(threshold);
+    const threshold =
+      process.env.ENV === "test" && process.env.WORKER_HEALTH_THRESHOLD;
+    let health;
+    if (threshold) health = RealtimeJobExecuter.checkHealth(threshold);
+    else health = RealtimeJobExecuter.checkHealth();
     process.send({ type: "HEALTH_REPORT", data: health });
   }
 });
