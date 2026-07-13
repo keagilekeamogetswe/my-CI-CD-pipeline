@@ -26,7 +26,7 @@ process.on("SIGTERM", async () => {
 });
 
 // 2. KICK OFF THE STREAMING LISTENER AT THE VERY BOTTOM WITH MOCKED INJECTIONS
-if (process.env.NODE_ENV === "test") {
+if (process.env.ENV === "test") {
   /**
    * PRODUCTION CONSIDERATION:
    * Passing mock objects directly to the execution starter bypasses raw socket initialization.
