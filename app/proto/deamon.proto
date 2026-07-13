@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package jobs;
+
+service JobService {
+  rpc AddJob (AddJobRequest) returns (AddJobResponse);
+}
+
+message AddJobRequest {
+  string type = 1;
+  string payload = 2; // JSON string
+}
+
+message AddJobResponse {
+  uint64 id = 1;
+  string status = 2;
+}
