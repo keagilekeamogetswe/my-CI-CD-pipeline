@@ -10,7 +10,6 @@ process.on("message", (message) => {
     // Apply a fast 100ms threshold during tests to prevent long-running timeouts
     const threshold =
       process.env.ENV === "test" && process.env.WORKER_HEALTH_THRESHOLD;
-    
     let health;
     if (threshold) health = DeadLetterConsumer.checkHealth(threshold);
     else health = DeadLetterConsumer.checkHealth();
