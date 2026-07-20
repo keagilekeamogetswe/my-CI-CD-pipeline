@@ -1,0 +1,19 @@
+{
+  "name": "k8s",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@kubernetes/client-node": "^1.4.0",
+    "dotenv": "^17.4.2",
+    "extensionless": "^2.0.6",
+    "mysql2": "^3.23.1"
+  }
+}
