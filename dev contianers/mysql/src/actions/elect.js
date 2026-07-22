@@ -6,7 +6,7 @@ export const PrimaryPodElection = (() => {
   let elected_pod = null;
 
   return {
-    elect_pod: async (pods) => {
+    _elect_pod: async (pods) => {
       let init = true;
       let deadIndexes = [];
       let primary_index = null;
@@ -52,9 +52,10 @@ export const PrimaryPodElection = (() => {
         // B. Run SQL Configurations via MysqlClient
         const primary_query = queries.primary();
         const replica_query = queries.replica(primaryName); // Pass primary name down
-
         // Configure the Primary Node (Turn off read-only parameters)
-        await MysqlClient.connection(primaryName).execute(primary_query);
+        const result =
+          await MysqlClient.connection(primaryName).execute(primary_query);
+        console.log("result: ", result);
 
         // Configure Replica Nodes individually to point to the Primary
         for (const replicaName of replicaPods) {
@@ -86,8 +87,8 @@ export const PrimaryPodElection = (() => {
                 idx !== new_primary_index && !deadIndexes.includes(idx),
             );
 
-            if (otherHealthyPods.length > 0) {
-              await PodManager.setToReplica(otherHealthyPods);
+            for (const pod of otherHealthyPods) {
+              await PodManager.setToReplica(pod);
             }
 
             // Run SQL Promotion/Demotion statements dynamically
@@ -95,7 +96,7 @@ export const PrimaryPodElection = (() => {
             const replica_query = queries.replica();
 
             // Promote the new leader to Read/Write
-            await MysqlClient.connection(newPrimaryName).execute(primary_query);
+            await MysqlClient.connection(primaryName).execute(primary_query);
 
             // Tell all remaining running followers to drop tracking the dead node and track the new master
             for (const healthyReplicaName of otherHealthyPods) {
@@ -120,6 +121,12 @@ export const PrimaryPodElection = (() => {
           );
         }
       }
+    },
+    get elect_pod() {
+      return this._elect_pod;
+    },
+    set elect_pod(value) {
+      this._elect_pod = value;
     },
   };
 })();

@@ -1,0 +1,1 @@
+ minikube start --driver=docker --container-runtime=docker --memory=4g --cpus=2 --wait=all; kubectl get nodes -o wide

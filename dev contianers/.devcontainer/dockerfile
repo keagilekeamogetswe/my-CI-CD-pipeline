@@ -1,0 +1,16 @@
+FROM node:20-alpine
+
+WORKDIR /workspace
+
+RUN apk add --no-cache \
+    bash \
+    git \
+    curl
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+ && install -m 0755 kubectl /usr/local/bin/kubectl \
+ && rm kubectl
+ENV K8S_NAMESPACE=social-networks
+ENV PORT=3000
+
+EXPOSE 3000
+CMD ["sleep", "infinity"]

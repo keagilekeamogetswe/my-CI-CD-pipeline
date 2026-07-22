@@ -15,7 +15,7 @@ export const MysqlClient = {
 
     // 1. Resolve to the pod's exact Headless Service DNS endpoint
     // Format: pod-name.service-name.namespace.svc.cluster.local
-    const targetHost = `${podName}.mysql.social-networks.svc.cluster.local`;
+    const targetHost = podName;
 
     // 2. Return an existing pool from cache or spin up a new one
     if (!poolCache.has(targetHost)) {

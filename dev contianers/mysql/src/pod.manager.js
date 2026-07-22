@@ -10,7 +10,8 @@ const PodManager = (() => {
       pod_labels.clear();
       items.forEach((item) => {
         const { role, app } = item.metadata.labels;
-        pod_labels.set(item.metadata.name, { role, app });
+        const ip = item.status?.podIP;
+        pod_labels.set(item.metadata.name, { role, app, ip });
       });
       return pod_labels;
     },

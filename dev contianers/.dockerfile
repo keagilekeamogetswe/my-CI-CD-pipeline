@@ -8,7 +8,7 @@ COPY package*.json ./
 RUN npm install
 
 # Copy source code into the container
-COPY mysql ./app
+COPY mysql/ .
 
 # Expose gRPC port
 EXPOSE 3000
@@ -17,4 +17,4 @@ EXPOSE 3000
 ENV K8S_NAMESPACE=social-networks
 
 # Start the
-CMD ["node", "--import=extensionless/register", "index.js"]
+CMD ["node", "--import=extensionless/register", "mysql/src/index.js"]
