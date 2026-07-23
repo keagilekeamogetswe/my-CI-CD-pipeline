@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: token-distribution
+  namespace: social-networks
+  labels:
+    env: test
+    role: token-distribution
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      env: test
+      role: token-distribution
+  template:
+    metadata:
+      labels:
+        env: test
+        role: token-distribution
+    spec:
+      serviceAccountName: dev-client
+      containers:
+        - name: token-distribution
+          image: k8s-token-service:latest
+          imagePullPolicy: Never
+          ports:
+            - name: websocket
+              containerPort: 8081 # WebSocket server port
+              protocol: TCP

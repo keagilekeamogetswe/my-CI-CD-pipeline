@@ -1,0 +1,9 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: namespace-admin
+  namespace: social-networks
+rules:
+  - apiGroups: ["*"] # all API groups
+    resources: ["*"] # all resources in this namespace
+    verbs: ["*"] # all actions (get, list, create, delete, etc.)

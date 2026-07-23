@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "vitest",
-    "dev": "node --import=extensionless/register mysql/src/index.js"
+    "mysql-operator": "node --import=extensionless/register mysql/src/index.js",
+    "token": "node --import=extensionless/register test/token/index.js"
   },
   "keywords": [],
   "author": "",
@@ -13,9 +14,12 @@
   "type": "module",
   "dependencies": {
     "@kubernetes/client-node": "^1.4.0",
+    "dns": "^0.2.2",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "extensionless": "^2.0.6",
-    "mysql2": "^3.23.1"
+    "mysql2": "^3.23.1",
+    "vitest": "^4.1.10",
+    "ws": "^8.21.1"
   }
 }

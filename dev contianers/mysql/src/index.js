@@ -36,7 +36,7 @@ app.get("/pods", async (req, res) => {
   }
 });
 
-app.post("/elect", async (req, res) => {
+app.get("/elect", async (req, res) => {
   try {
     const pods = await PodManager.getPods();
 

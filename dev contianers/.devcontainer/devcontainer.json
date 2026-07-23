@@ -1,45 +1,22 @@
 {
   "name": "mysql-operator",
-
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
-
+  "build": { "dockerfile": "Dockerfile" },
   "workspaceFolder": "/workspace",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
-
-  // 1. Keep this! This allows the container to talk to the minikube container
-  "runArgs": ["--network=minikube"],
-
-  // 2. Add mounts so your Node.js operator can read your local kube credentials
-
-  "mounts": [
-    "source=${localEnv:USERPROFILE}\\.kube,target=/root/.kube,type=bind",
-    "source=${localEnv:USERPROFILE}\\.minikube,target=/root/.minikube,type=bind"
-  ],
-
+  "runArgs": ["--network=minikube", "--cap-add=NET_ADMIN", "--dns=10.96.0.10"],
   "containerEnv": {
     "K8S_NAMESPACE": "social-networks",
     "ENV": "test"
   },
-
   "forwardPorts": [3000],
   "portsAttributes": {
-    "3000": {
-      "label": "MySQL Operator",
-      "onAutoForward": "notify"
-    }
+    "3000": { "label": "MySQL Operator", "onAutoForward": "notify" }
   },
-
   "overrideCommand": false,
-
-  "postCreateCommand": "npm install",
-
-  // 3. Chain a sed command before 'npm run dev' to point the host pointer to the container name
-  "postStartCommand": "npm run dev",
+  "postCreateCommand": "export MINIKUBE_IP=$(getent hosts minikube | awk '{ print $1 }') && ip route add 10.244.0.0/16 via $MINIKUBE_IP && ip route add 10.96.0.0/12 via $MINIKUBE_IP && echo 'nameserver $MINIKUBE_IP' > /etc/resolv.conf && echo 'search social-networks.svc.cluster.local svc.cluster.local cluster.local' >> /etc/resolv.conf && echo 'options ndots:5' >> /etc/resolv.conf && npm install",
+  "postStartCommand": "npm run mysql-operator",
 
   "remoteUser": "root",
-
   "customizations": {
     "vscode": {
       "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
