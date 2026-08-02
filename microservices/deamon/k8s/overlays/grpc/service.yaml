@@ -1,0 +1,14 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name:  deamon-grpc
+  namespace: social-networks
+spec:
+  selector:
+    app: deamon
+    role: grpc
+  type:  ClusterIP
+  ports:
+  - name:  grpc
+    port:  50051
+    targetPort:  50051

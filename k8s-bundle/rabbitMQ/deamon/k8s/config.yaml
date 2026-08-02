@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: deamon-rabbit-mq
+  namespace: social-networks
+data:
+  RMQ_DELAYED_EXCHANGE: "delayed"
+  RMQ_DELAYED_QUEUE: "jobs"
+  RMQ_DEAD_LETTER_QUEUE: "dead_letter"
+  RMQ_DEAD_LETTER_EXCHANGE: "dlt_exchange"
+  RMQ_PORT: "5672"
+  RMQ_HOST: "deamon-rabbit-mq"

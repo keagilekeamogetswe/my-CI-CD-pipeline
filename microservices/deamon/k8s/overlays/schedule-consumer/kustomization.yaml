@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Points to the shared base directory
+resources:
+  - ../../base
+
+# Changes the metadata name of the Deployment
+nameSuffix: -schedule-consumer
+
+# Strategic merge patch for container command/args
+patches:
+  - path: deployment.yaml

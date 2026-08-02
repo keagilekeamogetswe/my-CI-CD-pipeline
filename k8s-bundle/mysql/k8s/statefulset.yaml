@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: social-networks
+  labels:
+    app: mysql
+spec:
+  serviceName: mysql
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - name: init-mysql-id
+        image: busybox:1.36
+        command:
+          - sh
+          - -c
+          - |
+            ordinal=$(hostname | awk -F'-' '{print $NF}')
+            echo "[mysqld]" > /mnt/config/server-id.cnf
+            echo "server-id=$((100 + ordinal))" >> /mnt/config/server-id.cnf
+            echo "relay-log=mysql-${ordinal}-relay-bin" >> /mnt/config/server-id.cnf
+        volumeMounts:
+          - name: config
+            mountPath: /mnt/config
+
+      containers:
+      - name: mysql
+        image: mysql:8
+        ports:
+          - name: mysql-port
+            containerPort: 3306
+        envFrom:
+          - secretRef:
+              name: mysql
+        livenessProbe:
+          exec:
+            command: ["mysqladmin", "ping", "-h", "127.0.0.1"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+              - sh
+              - -c
+              - |
+                (echo > /dev/tcp/127.0.0.1/3306) >/dev/null 2>&1 && \
+                mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "SELECT 1;"
+          initialDelaySeconds: 25
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 5
+        volumeMounts:
+          - name: config
+            mountPath: /etc/mysql/conf.d
+          - name: mysql-data
+            mountPath: /var/lib/mysql
+      volumes:
+      - name: config
+        emptyDir: {}
+  volumeClaimTemplates:
+  - metadata:
+      name: mysql-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi

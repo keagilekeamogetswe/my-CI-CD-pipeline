@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql
+  namespace: social-networks
+  labels:
+    app: mysql
+data:
+  K8S_NAMESPACE: social-networks
+  PORT: "3000"
+  replication-prepare: |
+    #!/bin/sh
+    set -e
+
+    mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" <<EOF
+    CREATE USER IF NOT EXISTS '${MYSQL_REPLICATION_USER}'@'%'
+      IDENTIFIED BY '${MYSQL_REPLICATION_PASSWORD}';
+
+    GRANT REPLICATION SLAVE ON *.* TO
+      '${MYSQL_REPLICATION_USER}'@'%';
+
+    FLUSH PRIVILEGES;
+    EOF
+
+  # deamon-user-init: |
+  #   #!/bin/sh
+  #   set -eu
+
+  #   mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" <<EOF
+  #   CREATE USER IF NOT EXISTS '${MYSQL_DAEMON_USER}'@'%'
+  #     IDENTIFIED BY '${MYSQL_DAEMON_PASSWORD}';
+
+  #   FLUSH PRIVILEGES;
+  #   EOF
+
+  # chat-user-init: |
+  #   #!/bin/sh
+  #   set -eu
+
+  #   mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" <<EOF
+  #   CREATE USER IF NOT EXISTS '${MYSQL_CHAT_USER}'@'%'
+  #     IDENTIFIED BY '${MYSQL_CHAT_PASSWORD}';
+
+  #   FLUSH PRIVILEGES;
+  #   EOF

@@ -1,0 +1,1 @@
+{"builds":[{"imageName":"mysql-operator","tag":"mysql-operator:7b4bf97b7e1042139d8ce9dcb0bee595fd4a135d8dfe31036f5980c622aa1311"},{"imageName":"mysql-migrations","tag":"mysql-migrations:1712f1cea86c3a16f2d1c1afe89eee39ff86f8b2512b42fcfc5282f0762f0546"}]}
