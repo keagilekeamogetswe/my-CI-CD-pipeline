@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: busybox
+  namespace: social-networks
+  labels:
+    app: busybox
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: busybox
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+
+  template:
+    metadata:
+      labels:
+        app: busybox
+
+    spec:
+      containers:
+        - name: busybox
+          image: busybox-test
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+
+          resources:
+            requests:
+              cpu: "20m"
+              memory: "55Mi"
+
+          volumeMounts:
+            - name: data
+              mountPath: /data
+
+      volumes:
+        - name: data
+          emptyDir: {}

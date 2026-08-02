@@ -1,0 +1,9 @@
+apiVersion: skaffold/v4beta14
+kind: Config
+
+metadata:
+  name: kubernetes
+
+manifests:
+  rawYaml:
+    - namespaces/*.yaml

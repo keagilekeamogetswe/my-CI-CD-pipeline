@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deamon
+spec:
+  selector:
+    matchLabels:
+      app: deamon
+      role: grpc
+  template:
+    metadata:
+      labels:
+        app: deamon
+        role: grpc
+    spec:
+      containers:
+      - name: deamon
+        args: ["npm", "run", "grpc"]
+        ports:
+        - name: grpc
+          containerPort: 50051
+          protocol: TCP

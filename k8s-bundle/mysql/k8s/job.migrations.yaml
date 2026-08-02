@@ -1,0 +1,47 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mysql-migrations
+  namespace: social-networks
+
+spec:
+  backoffLimit: 5
+  ttlSecondsAfterFinished: 60
+
+  template:
+    spec:
+      restartPolicy: Never
+
+      initContainers:
+        - name: wait-for-mysql
+          image: mysql:8.4
+          command: ["sh", "-c"]
+          args:
+            - |
+              until mysqladmin ping \
+                -h mysql-write \
+                -u root \
+                -p"$MYSQL_ROOT_PASSWORD" \
+                --silent; do
+                echo "Waiting for mysql-write..."
+                sleep 5
+              done
+              echo "MySQL is ready."
+          envFrom:
+            - secretRef:
+                name: mysql
+
+      containers:
+        - name: flyway-migrations
+          image: mysql-migrations
+          command: ["sh", "-c"]
+          args:
+            - |
+              flyway \
+                -url="jdbc:mysql://mysql-write:3306/$MYSQL_DATABASE?allowPublicKeyRetrieval=true&useSSL=false" \
+                -user="root" \
+                -password="$MYSQL_ROOT_PASSWORD" \
+                migrate
+          envFrom:
+            - secretRef:
+                name: mysql

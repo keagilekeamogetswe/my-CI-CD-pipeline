@@ -1,0 +1,16 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+
+metadata:
+  name: mysql-operator
+  namespace: social-networks
+
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+      - patch

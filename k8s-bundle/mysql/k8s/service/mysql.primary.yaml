@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-write
+  namespace: social-networks
+spec:
+  selector:
+    app: mysql
+    role: primary
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: 3306

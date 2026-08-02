@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-operator
+  namespace: social-networks
+  labels:
+    app: mysql
+    role: mysql-operator
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: mysql
+      role: mysql-operator
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+
+  template:
+    metadata:
+      labels:
+        app: mysql
+        role: mysql-operator
+
+    spec:
+      serviceAccountName: mysql-operator
+      # Add custom search domains natively to the Pod's DNS resolution
+      dnsConfig:
+        searches:
+          - mysql.social-networks.svc.cluster.local
+          - social-networks.svc.cluster.local
+      containers:
+        - name: mysql-operator
+          image: mysql-operator
+          imagePullPolicy: Never
+
+          ports:
+            - containerPort: 3000
+              name: http
+
+          envFrom:
+            - secretRef:
+                name: mysql
+            - configMapRef:
+                name: mysql
+
+          resources:
+            requests:
+              cpu: 20m
+              memory: 55Mi
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            timeoutSeconds: 10
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 5
+            timeoutSeconds: 10
+
+          volumeMounts:
+            - name: data
+              mountPath: /data
+
+      volumes:
+        - name: data
+          emptyDir: {}

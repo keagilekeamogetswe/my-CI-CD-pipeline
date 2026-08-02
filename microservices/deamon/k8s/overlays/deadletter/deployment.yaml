@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deamon
+spec:
+  selector:
+    matchLabels:
+      app: deamon
+      role: deadletter
+  template:
+    metadata:
+      labels:
+        app: deamon
+        role: deadletter
+    spec:
+      containers:
+      - name: deamon #Container name must match the base container name so Kustomize merges the args into the existing container rather than creating a second container inside the Pod.
+        args: ["npm", "run", "deadletter-consumer"]

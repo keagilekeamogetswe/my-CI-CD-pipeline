@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: deamon-rabbit-mq
+  namespace: social-networks
+spec:
+  serviceName: deamon-rabbit-mq
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbit-mq
+      role: deamon
+  template:
+    metadata:
+      labels:
+        app: rabbit-mq
+        role: deamon
+    spec:
+      containers:
+        - name: deamon-rabbit-mq
+          image: rabbit-mq:latest   # your custom image with delayed plugin
+          ports:
+            - containerPort: 5672
+              name: amqp
+            - containerPort: 15672
+              name: management
+          envFrom:
+            - configMapRef:
+                name: deamon-rabbit-mq
+            - secretRef:
+                name: deamon-rabbit-mq
+          env:
+            # Duplicate/masked entries
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: deamon-rabbit-mq
+                  key: RMQ_USER
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: deamon-rabbit-mq
+                  key: RMQ_PASS
+          volumeMounts:
+            - name: rabbitmq-data
+              mountPath: /var/lib/rabbitmq
+          readinessProbe:
+            tcpSocket:
+              port: 5672
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 5
+          livenessProbe:
+            exec:
+              command:
+                - rabbitmq-diagnostics
+                - -q
+                - ping
+            initialDelaySeconds: 40
+            periodSeconds: 10
+            failureThreshold: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: rabbitmq-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

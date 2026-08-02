@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deamon
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deamon
+  template:
+    metadata:
+      labels:
+        app: deamon
+    spec:
+      initContainers:
+        - name: set-up
+          image: mysql:8.0
+          envFrom:
+            - secretRef:
+                name: mysql
+            - secretRef:
+                name: deamon
+          command:
+            - /bin/sh
+            - -c
+            - |
+              PORT=${MYSQL_PORT:-3306}
+              until mysql -h "$MYSQL_HOST" -P "$PORT" -u root -p"$MYSQL_ROOT_PASSWORD" -e "SELECT 1;" ; do
+                echo "Waiting for MySQL..."
+                sleep 5
+              done
+              mysql -h "$MYSQL_HOST" -P "$PORT" -u root -p"$MYSQL_ROOT_PASSWORD" -e "
+                CREATE USER IF NOT EXISTS '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASS';
+                GRANT ALL PRIVILEGES ON \`$MYSQL_DATABASE\`.* TO '$MYSQL_USER'@'%';
+                FLUSH PRIVILEGES;"
+      containers:
+        - name: deamon
+          image: deamon:v1.0.0
+          envFrom:
+            - secretRef:
+                name: mysql
+            - secretRef:
+                name: deamon
+            - secretRef:
+                name: deamon-rabbit-mq
+            - configMapRef:
+                name: deamon-rabbit-mq
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+            periodSeconds: 10

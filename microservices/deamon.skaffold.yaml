@@ -1,0 +1,33 @@
+apiVersion: skaffold/v4beta14
+kind: Config
+
+metadata:
+  name: daemon
+
+build:
+  local:
+    push: false
+  artifacts:
+    - image: deamon
+      context: .
+      docker:
+        dockerfile: deamon/Dockerfile
+        target: deamon
+        noCache: true
+
+manifests:
+  kustomize:
+    paths:
+      - deamon/k8s
+
+deploy:
+  kubectl:
+    flags:
+      apply:
+        - --force
+
+portForward:
+  - resourceType: Service
+    resourceName: deamon-grpc
+    port: 50051
+    localPort: 50051

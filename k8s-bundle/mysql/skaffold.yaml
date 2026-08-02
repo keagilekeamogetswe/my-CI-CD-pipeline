@@ -1,0 +1,37 @@
+apiVersion: skaffold/v4beta14
+kind: Config
+
+metadata:
+  name: mysql
+
+build:
+  local:
+    push: false
+  artifacts:
+    - image: mysql-operator
+      context: .
+      docker:
+        dockerfile: Dockerfile
+        target: mysql-operator   # build the operator stage
+    - image: mysql-migrations
+      context: .
+      docker:
+        dockerfile: Dockerfile
+        target: mysql-migrations # build the migrations stage
+
+manifests:
+  rawYaml:
+    - k8s/account/*.yaml
+    - k8s/service/*.yaml
+    - k8s/*.yaml
+
+deploy:
+  kubectl:
+    flags:
+      apply:
+        - --force # Forces recreation of immutable objects like Jobs
+portForward:
+  - resourceType: Service
+    resourceName: mysql-operator
+    port: 3000
+    localPort: 3000

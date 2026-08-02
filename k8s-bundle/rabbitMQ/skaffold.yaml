@@ -1,0 +1,32 @@
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: rabbit-mq
+build:
+  local:
+    push: false
+  artifacts:
+    - image: rabbit-mq
+      context: .
+      docker:
+        dockerfile: Dockerfile
+        target: deamon-rabbit-mq
+
+
+manifests:
+  rawYaml:
+    - deamon/k8s/*.yaml
+deploy:
+  kubectl:
+    flags:
+      apply:
+        - --force
+portForward:
+  - resourceType: Service
+    resourceName: deamon-rabbit-mq
+    port: 5672
+    localPort: 5672
+  - resourceType: Service
+    resourceName: deamon-rabbit-mq
+    port: 15672
+    localPort: 15672
