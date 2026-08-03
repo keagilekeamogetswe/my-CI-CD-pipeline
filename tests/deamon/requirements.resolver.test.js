@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import RequirementResolver from "../../app/deamon/actions/dependency/requirement.resolver"
-import Registry from "../../app/deamon/registry";
+import RequirementResolver from "../../microservices/deamon/actions/dependency/requirement.resolver"
+import Registry from "../../microservices/deamon/registry";
 let conn;
 let requirement_key = "mysql_connection"
 let requirements_resolved;

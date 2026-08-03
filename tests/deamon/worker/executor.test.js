@@ -35,7 +35,7 @@ describe.sequential("Testing job executer worker", () => {
    */
   const spawnTestWorker = () => {
     return fork(
-      path.resolve(__dirname, "../../../app/deamon/worker/job.worker.js"),
+      path.resolve(__dirname, "../../../microservices/deamon/worker/job.worker.js"),
       [],
       {
         execArgv: ["--import=extensionless/register"],

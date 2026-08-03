@@ -6,12 +6,10 @@ dotenv.config({ path: "./tests/.env" });
 
 export default defineConfig({
   test: {
+    testTimeout: 30000,
     // 1. Force test files to run one after the other instead of in parallel
-    poolOptions: {
-      threads: {
-        singleThread: true,
-      },
-    },
+    pool: "threads",
+    singleThread: true,
     // 2. Ensure individual tests within a file don't run concurrently by default
     sequence: {
       concurrent: false,
@@ -21,6 +19,7 @@ export default defineConfig({
       "**/deprecated/**",
       "**/tests/**/.ignore",
       "**/tests/**/deprecated/**",
+      "**/microservices/**",
     ],
     envFiles: ["**/tests/.env"],
   },

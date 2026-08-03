@@ -1,5 +1,5 @@
 import { test ,expect} from "vitest";
-import registry from "../../app/deamon/registry";
+import registry from "../../microservices/deamon/registry";
 
 
 test("Registry loads actions", async () => {

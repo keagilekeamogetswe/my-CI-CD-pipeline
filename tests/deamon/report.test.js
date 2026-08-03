@@ -1,12 +1,12 @@
-import { Database } from "../../app/deamon/db";
+import { Database } from "../../microservices/deamon/db";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import nodemailer from "nodemailer";
-import ReportProcess from "../../app/deamon/report";
-import Scheduler from "../../app/deamon/scheduler";
-import RequirementResolver from "../../app/deamon/actions/dependency/requirement.resolver";
-import { RabbitMQ } from "../../app/deamon/rabbitmq";
+import ReportProcess from "../../microservices/deamon/report";
+import Scheduler from "../../microservices/deamon/scheduler";
+import RequirementResolver from "../../microservices/deamon/actions/dependency/requirement.resolver";
+import { RabbitMQ } from "../../microservices/deamon/rabbitmq";
 import { resolve } from "node:dns";
-import JobProcessor from "../../app/deamon/processor";
+import JobProcessor from "../../microservices/deamon/processor";
 
 const transporter = nodemailer.createTransport({
   host: "127.0.0.1",
@@ -115,5 +115,5 @@ describe("Report", () => {
     });
     expect(typeof consume_Promise.insertId).toBe("number");
     expect(consume_Promise.affectedRows).toBe(1);
-  }, 20000);
+  });
 });

@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "vitest"
+    "test": "node tests/test.script.js"
   },
   "keywords": [],
   "author": "",

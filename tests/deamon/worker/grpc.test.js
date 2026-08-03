@@ -14,7 +14,7 @@ describe.sequential("Report: JobService gRPC (child process)", () => {
   beforeAll(() => {
     return new Promise((resolve, reject) => {
       childServer = fork(
-        path.resolve(__dirname, "../../../app/deamon/grpc.js"), // adjust path
+        path.resolve(__dirname, "../../../microservices/deamon/grpc.js"), // adjust path
         [],
         {
           execArgv: ["--import=extensionless/register"],
@@ -27,7 +27,7 @@ describe.sequential("Report: JobService gRPC (child process)", () => {
         if (msg.type === "READY") {
           // Load proto and create client
           const packageDef = protoLoader.loadSync(
-            path.resolve(__dirname, "../../../app/proto/deamon.proto"),
+            path.resolve(__dirname, "../../../microservices/proto/deamon.proto"),
             {},
           );
           const grpcObj = grpc.loadPackageDefinition(packageDef);

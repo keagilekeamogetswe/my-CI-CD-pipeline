@@ -21,7 +21,7 @@ describe.sequential("Report", () => {
     return fork(
       path.resolve(
         __dirname,
-        "../../../app/deamon/worker/deadletter.worker.js",
+        "../../../microservices/deamon/worker/deadletter.worker.js",
       ),
       [],
       {

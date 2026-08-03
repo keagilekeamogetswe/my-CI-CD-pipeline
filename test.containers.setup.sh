@@ -1,0 +1,1 @@
+docker compose -f tests/docker-compose.yaml --env-file tests/.env up -d

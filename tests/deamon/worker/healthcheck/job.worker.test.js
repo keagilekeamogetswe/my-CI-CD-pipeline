@@ -12,7 +12,7 @@ describe.sequential("Report: Job Worker Health Server", async () => {
       childServer = fork(
         path.resolve(
           __dirname,
-          "../../../../app/deamon/worker/healthcheck/job.worker.health.server.js",
+          "../../../../microservices/deamon/worker/healthcheck/job.worker.health.server.js",
         ), // adjust path
         [],
         {
