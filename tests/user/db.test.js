@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { Database } from "../../app/user/db.js";
+import { Database } from "../../microservices/user/db.js";
 import { MongoClient } from "mongodb";
 
 describe.skip("Database Connection Integration Tests", () => {

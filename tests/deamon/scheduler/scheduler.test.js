@@ -1,10 +1,10 @@
 import { vi, afterAll, beforeAll, describe, it, expect } from "vitest";
-import { Database } from "../../../app/deamon/db";
+import { Database } from "../../../microservices/deamon/db";
 import amqp from "amqplib";
-import JobProcessor from "../../../app/deamon/processor";
-import RequirementResolver from "../../../app/deamon/actions/dependency/requirement.resolver";
-import Scheduler from "../../../app/deamon/scheduler";
-import { RabbitMQ } from "../../../app/deamon/rabbitmq";
+import JobProcessor from "../../../microservices/deamon/processor";
+import RequirementResolver from "../../../microservices/deamon/actions/dependency/requirement.resolver";
+import Scheduler from "../../../microservices/deamon/scheduler";
+import { RabbitMQ } from "../../../microservices/deamon/rabbitmq";
 
 describe("Testing the Scheduler flow with consumer_logic", () => {
   let conn;
@@ -184,6 +184,7 @@ describe("Testing the Scheduler flow with consumer_logic", () => {
     });
 
     const deadLetterJob = await consumePromise;
-    expect(deadLetterJob.id).toBe(retrieved_job.id);
+    console.log("=======id: ",retrieved_job.id, "======", deadLetterJob.job.id)
+    expect(deadLetterJob.job.id).toBe(retrieved_job.id);
   }, 15000);
 });

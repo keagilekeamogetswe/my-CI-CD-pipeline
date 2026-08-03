@@ -3,9 +3,7 @@ import amqp from "amqplib";
 let connection = null;
 let channel = null;
 
-const options =
-  process.env.ENV !== "test"
-    ? {
+const options = {
         protocol: "amqp",
         hostname: process.env.RMQ_HOST,
         port: Number(process.env.RMQ_PORT),
@@ -13,11 +11,7 @@ const options =
         password: process.env.RMQ_PASS,
         heartbeat: 60,
       }
-    : {
-        protocol: "amqp",
-        hostname: process.env.RMQ_HOST,
-        port: Number(process.env.RMQ_PORT),
-      };
+
 
 export const RabbitMQ = {
   getChannel: async (delayMode = true) => {

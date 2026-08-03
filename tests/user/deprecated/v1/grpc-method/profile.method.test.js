@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
-import GRPCUserProfileService from "../../../app/user/grpc-methods/service-profile.user.js"; // Adjust path to this service file
-import { Database } from "../../../app/user/db.js";
+import GRPCUserProfileService from "../../../microservices/user/grpc-methods/service-profile.user.js"; // Adjust path to this service file
+import { Database } from "../../../microservices/user/db.js";
 
 describe.skip("GRPCUserProfileService - Direct Unit Tests", () => {
   let mysql_connection;

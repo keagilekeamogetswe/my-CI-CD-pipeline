@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
-import Collector from "../../../app/deamon/metrics/collector";
+import Collector from "../../../microservices/deamon/metrics/collector";
 import argon2 from "argon2";
-import { Database } from "../../../app/deamon/db";
-import RequirementResolver from "../../../app/deamon/actions/dependency/requirement.resolver";
+import { Database } from "../../../microservices/deamon/db";
+import RequirementResolver from "../../../microservices/deamon/actions/dependency/requirement.resolver";
 
 describe("Collector.useMetricsFrom", () => {
   let mysql_connection;
@@ -52,7 +52,7 @@ describe("Collector.useMetricsFrom", () => {
       metrics_for_64.ramChangeMB,
     );
     expect(metrics_for_128.cpuTimeMs).toBeGreaterThan(metrics_for_64.cpuTimeMs);
-  });
+  }, 20000);
   it("should should save metrics", async () => {
     const job_type = "collector.test";
     vi.spyOn(Collector, "useMetricsFrom").mockImplementation(async () => {

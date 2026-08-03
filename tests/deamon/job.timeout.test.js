@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import registry from "../../app/deamon/registry";
-import JobProcessor from "../../app/deamon/processor";
+import registry from "../../microservices/deamon/registry";
+import JobProcessor from "../../microservices/deamon/processor";
 
 describe("JobProcessor.run_job", () => {
   it("returns the timeout rejection", async () => {

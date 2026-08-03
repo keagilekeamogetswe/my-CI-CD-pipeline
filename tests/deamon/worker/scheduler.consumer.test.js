@@ -36,7 +36,7 @@ describe.sequential("Testing schedule consumer worker", () => {
    */
   const spawnTestWorker = () => {
     return fork(
-      path.resolve(__dirname, "../../../app/deamon/worker/schedule.worker.js"),
+      path.resolve(__dirname, "../../../microservices/deamon/worker/schedule.worker.js"),
       [],
       {
         execArgv: ["--import=extensionless/register"],

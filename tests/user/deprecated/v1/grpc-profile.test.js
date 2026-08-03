@@ -2,7 +2,7 @@ import { describe, it, beforeAll, afterAll, expect } from "vitest";
 import dotenv from "dotenv";
 import grpc from "@grpc/grpc-js";
 import protoLoader from "@grpc/proto-loader";
-import { Database } from "../../app/user/db.js";
+import { Database } from "../../microservices/user/db.js";
 import { rejects } from "assert";
 import { response } from "express";
 import { resolve } from "path";

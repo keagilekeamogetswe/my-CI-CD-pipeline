@@ -1,6 +1,6 @@
 import { describe, it, beforeAll, afterAll, expect } from "vitest";
 import dotenv from "dotenv";
-import { Database } from "../../app/user/db.js";
+import { Database } from "../../microservices/user/db.js";
 import argon2 from "argon2";
 
 dotenv.config({ path: "./tests/.env" });
