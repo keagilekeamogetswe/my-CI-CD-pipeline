@@ -25,8 +25,8 @@ export const Database = {
               allowPublicKeyRetrieval: true,
             }
           : {
-              connectionLimit: 1,
-              queueLimit: 0,
+              connectionLimit: 100,
+              queueLimit: 100,
               ssl: false,
               allowPublicKeyRetrieval: false,
             }),

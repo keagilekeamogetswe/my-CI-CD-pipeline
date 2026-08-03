@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { userCredentials } from "../../app/user/credentials.js";
+import { userCredentials } from "../../microservices/user/credentials.js";
 import argon2 from "argon2";
-import { JWTHelper } from "../../app/utility/jwt.js";
+import { JWTHelper } from "../../microservices/utility/jwt.js";
 import dotenv from "dotenv";
 dotenv.config({ path: "./tests/.env" });
 describe.skip("userCredentials backend", () => {

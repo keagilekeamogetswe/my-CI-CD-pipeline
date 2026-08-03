@@ -1,7 +1,7 @@
 import { test, expect, describe, it, beforeAll, afterAll, vi } from "vitest";
-import JobProcessor from "../../app/deamon/processor";
-import { Database } from "../../app/deamon/db";
-import RequirementResolver from "../../app/deamon/actions/dependency/requirement.resolver";
+import JobProcessor from "../../microservices/deamon/processor";
+import { Database } from "../../microservices/deamon/db";
+import RequirementResolver from "../../microservices/deamon/actions/dependency/requirement.resolver";
 
 describe("Job flow integration testing", () => {
   let mysql_connection;

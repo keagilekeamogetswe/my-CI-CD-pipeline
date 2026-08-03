@@ -1,6 +1,6 @@
 import { describe, it, beforeAll, afterAll, expect, vi } from "vitest";
-import { Database } from "../../../../../app/user/db.js";
-import initialiseUserAccount from "../../../../../app/user/Repository/Logic/initialise.user.js";
+import { Database } from "../../../../../microservices/user/db.js";
+import initialiseUserAccount from "../../../../../microservices/user/Repository/Logic/initialise.user.js";
 import argon2 from "argon2";
 import dotenv from "dotenv";
 

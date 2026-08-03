@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import argon2 from "argon2";
-import { JWTHelper } from "./../../../app/utility/jwt";
-import Verification from "./../../../app/user/services/Verification";
+import { JWTHelper } from "./../../../microservices/utility/jwt";
+import Verification from "./../../../microservices/user/services/Verification";
 import dotenv from "dotenv";
 
 // Load environment variables for the test suite

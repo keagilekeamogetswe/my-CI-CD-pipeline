@@ -16,7 +16,7 @@ describe.sequential("Report: Schedule Worker Health Server", () => {
       childServer = fork(
         path.resolve(
           __dirname,
-          "../../../../app/deamon/worker/healthcheck/schedule.worker.health.server.js",
+          "../../../../microservices/deamon/worker/healthcheck/schedule.worker.health.server.js",
         ),
         [],
         {
@@ -52,9 +52,9 @@ describe.sequential("Report: Schedule Worker Health Server", () => {
     const data = await res.json();
 
     expect(res.status).toBe(200);
-    expect(data.isRunning).toBe(true);
-    expect(data.healthy).toBe(true);
-    expect(data.run_state).toBe("idle");
+    expect(data.worker.isRunning).toBe(true);
+    expect(data.worker.healthy).toBe(true);
+    expect(data.worker.run_state).toBe("idle");
   });
 
   // Optional unhealthy scenario if you add simulateUnhealthy IPC

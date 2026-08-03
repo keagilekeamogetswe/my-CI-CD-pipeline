@@ -1,9 +1,9 @@
 import { describe, it, beforeAll, afterAll, expect, vi } from "vitest";
-import { Database } from "../../../../../app/user/db.js";
-import initialiseUserAccount from "../../../../../app/user/Repository/Logic/initialise.user.js";
+import { Database } from "../../../../../microservices/user/db.js";
+import initialiseUserAccount from "../../../../../microservices/user/Repository/Logic/initialise.user.js";
 import argon2 from "argon2";
 import dotenv from "dotenv";
-import SessionControl from "../../../../../app/user/Repository/Logic/Session.Control.js";
+import SessionControl from "../../../../../microservices/user/Repository/Logic/Session.Control.js";
 
 dotenv.config({ path: "./tests/.env" });
 

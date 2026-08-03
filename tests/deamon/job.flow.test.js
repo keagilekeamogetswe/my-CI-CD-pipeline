@@ -1,10 +1,10 @@
 import { test, expect, describe, it, beforeAll, afterAll, vi } from "vitest";
-import registry from "../../app/deamon/registry";
-import JobProcessor from "../../app/deamon/processor";
-import { Database } from "../../app/deamon/db";
-import RequirementResolver from "../../app/deamon/actions/dependency/requirement.resolver";
+import registry from "../../microservices/deamon/registry";
+import JobProcessor from "../../microservices/deamon/processor";
+import { Database } from "../../microservices/deamon/db";
+import RequirementResolver from "../../microservices/deamon/actions/dependency/requirement.resolver";
 import argon2 from "argon2";
-import Collector from "../../app/deamon/metrics/collector";
+import Collector from "../../microservices/deamon/metrics/collector";
 
 describe("Job flow testing", async () => {
   let mysql_connection;
@@ -15,7 +15,7 @@ describe("Job flow testing", async () => {
     mysql_connection = await Database.getSQLConnection();
     await mysql_connection.beginTransaction();
 
-    // Generate dependent foreign key relation for job payloads
+    // Generate dependent fofreign key relation for job payloads
     const [user_result] = await mysql_connection.execute(
       "INSERT INTO user_credentials(password_hash) VALUES (?)",
       ["password_hash"],

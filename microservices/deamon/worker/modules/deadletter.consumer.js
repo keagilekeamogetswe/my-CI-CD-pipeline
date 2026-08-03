@@ -32,7 +32,7 @@ const DeadLetterConsumer = (() => {
     try {
       channel = await RabbitMQInstance.getChannel(false);
 
-      await channel.assertQueue(process.env.RMQ_DEAD_LETTER_QUEUE, {
+      if(process.env.ENV!=="test") await channel.assertQueue(process.env.RMQ_DEAD_LETTER_QUEUE, {
         durable: true,
       });
 
