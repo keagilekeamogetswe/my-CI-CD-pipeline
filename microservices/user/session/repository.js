@@ -15,23 +15,26 @@ const checkSessionFields = (session_config)=>{
 export const SessionRepository = (()=>{
   return{
     save: async(session_config, mysql_connection)=>{
-    session_config["created_at"] =  new Date(db_params["iat"]).toISOString().slice(0,19).replace("T"," ")
-    session_config["expires_at"] =  new Date(db_params["exp"]).toISOString().slice(0,19).replace("T"," ")
-    checkSessionFields(session_config);
+      console.log(session_config)
+      checkSessionFields(session_config);
 
-    // build the query dynamically based on the session_config object
-    const fields = Object.keys(session_config).join(", ");
-    const values = Object.values(session_config);
-    const values_placeholder = Object.keys(session_config).map(() => "?").join(", ");
+      // build the query dynamically based on the session_config object
+      const fields = Object.keys(session_config).join(", ");
+      const values = Object.values(session_config);
+      const values_placeholder = Object.keys(session_config).map(() => "?").join(", ");
 
-    const query = `INSERT INTO user_sessions(${fields}) VALUES (${values_placeholder})`;
-    const [result] = await mysql_connection.query(query, values);
-    const {insertId} = result;
-    if(insertId==undefined){
-      // Send as a background task to the deamon service to handle the session creation
-      await DeamonClient.addJob("session.save", session_config)
-    }
-
+      const query = `INSERT INTO user_session(${fields}) VALUES (${values_placeholder})`;
+      try{
+        const [result] = await mysql_connection.query(query, values);
+        const {insertId} = result;
+        if(insertId==undefined){
+          throw new Error("No affected rows");
+        }
+      }
+      catch(err){
+        // Send as a background task to the deamon service to handle the session creation
+        await DeamonClient.addJob("session.save", session_config)
+      }
     },
     async revoke (user_id, jti, mysql_connection){
       const revoke_at = new Date().toISOString().substring(0,19).replace("T"," ")
