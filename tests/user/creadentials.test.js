@@ -47,7 +47,7 @@ describe("CredentialsRepository", () => {
     const [[credentialRows]] = await mysql_connection.execute(
       `
       SELECT password_hash
-      FROM user_credentials
+      FROM user_authentication
       WHERE id = ?
       `,
       [user_id]
@@ -83,4 +83,12 @@ describe("CredentialsRepository", () => {
     expect(phoneRows.body).toBe(phone.body);
     expect(phoneRows.initiated_by).toBe(user_id);
   });
+  it("should allow null users", async()=>{
+    const user_id = await CredentialsRepository.create(null, mysql_connection)
+    const [[user_row]] = await mysql_connection.execute("SELECT * FROM user_authentication WHERE id = ?", [user_id])
+    const [[user_view_row]] =   await mysql_connection.execute("SELECT * FROM user_credentials WHERE id = ?", [user_id])
+    console.log(user_row)
+    expect(user_id).toBe(user_row.id)
+    expect(user_view_row?.id).toBeUndefined()
+  })
 });
