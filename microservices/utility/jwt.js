@@ -9,7 +9,7 @@ export const JWTHelper = (() => {
       const jwt = await new jose.SignJWT(payload)
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()
-        .setJti(crypto.randomUUID())
+        .setJti(payload.jti ?? crypto.randomUUID())
         .setExpirationTime(exp) // e.g. "2h" or numeric timestamp
         .sign(key);
       return jwt;
@@ -29,7 +29,7 @@ export const JWTHelper = (() => {
       const jwe = await new jose.EncryptJWT(payload)
         .setProtectedHeader({ alg: "dir", enc: "A256GCM" })
         .setIssuedAt()
-        .setJti(crypto.randomUUID())
+        .setJti(payload.jti ?? crypto.randomUUID())
         .setExpirationTime(exp)
         .encrypt(key);
       return jwe;
