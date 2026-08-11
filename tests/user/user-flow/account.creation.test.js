@@ -38,16 +38,20 @@ describe("User Creation flow tests",()=>{
 
       await mysql_connection.beginTransaction();
 
-      // Create a test dial code for phone number creation
-      const [result] = await mysql_connection.execute(
+      // Create or get test dial code for phone number creation
+      await mysql_connection.execute(
         `
-        INSERT INTO dial_codes (abrv, dial_code, country)
+        INSERT IGNORE INTO dial_codes (abrv, dial_code, country)
         VALUES (?, ?, ?)
         `,
         ["ZAR", "27", "South Africa"]
       );
 
-      dial_code_id = result.insertId;
+      const [[dialCode]] = await mysql_connection.execute(
+        "SELECT id FROM dial_codes WHERE abrv = ?",
+        ["ZAR"]
+      );
+      dial_code_id = dialCode.id;
     });
 
     afterAll(async () => {
