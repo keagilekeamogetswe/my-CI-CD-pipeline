@@ -44,7 +44,7 @@ describe("SessionRepository", () => {
 
             const [query, values] = mysql_connection.query.mock.calls[0];
 
-            expect(query).toContain("INSERT INTO user_sessions");
+            expect(query).toContain("INSERT INTO user_session");
 
             expect(values).toContain(session.jti);
             expect(values).toContain(session.user_id);
