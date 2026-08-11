@@ -25,6 +25,19 @@ export const CredentialsRepository = (()=>{
       );
       return phone_id;
     },
+    linkEmail: async (user_id, email, mysql_connection) => {
+      // Insert email into user_emails (user_id must exist in user_authentication)
+      const [email_result] = await mysql_connection.execute(
+        "INSERT INTO user_emails(user_id, email) VALUES (?, ?)",
+        [user_id, email]
+      );
+
+      // Get the inserted email_id
+      const email_id = email_result.insertId;
+
+      return email_id;
+    },
+
     changePassword: async(user_id, new_password_hash, mysql_connection)=>{
       const [result] = await mysql_connection.execute(
         "UPDATE user_authentication SET password_hash = ? WHERE id = ?", [new_password_hash, user_id]
