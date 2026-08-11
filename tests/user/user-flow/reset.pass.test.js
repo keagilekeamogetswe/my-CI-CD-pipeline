@@ -30,7 +30,7 @@ import { JWTHelper } from "../../../microservices/utility/jwt";
 import { setTimeout } from "node:timers";
 import { CredentialsRepository } from "../../../microservices/user/credentials/repository";
 import { resetWithCurrentPassword } from "../../../microservices/user/user-flow/password-reset/verification.with.cpass";
-import { AccountPasswordReset } from "../../../microservices/user/user-flow/Account.password";
+import { AccountPasswordReset } from "../../../microservices/user/user-flow/account.password";
 import { PASS_RESET_METHOD } from "../../../microservices/user/user-flow/password-reset/constant";
 
 describe("User Creation flow tests",()=>{
