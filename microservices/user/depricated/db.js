@@ -1,5 +1,8 @@
+// database.js
 import { createPool } from "mysql2/promise";
 import { MongoClient } from "mongodb";
+import dotenv from "dotenv";
+dotenv.config({ path: "./app/user/.env" });
 
 let sqlPool;
 let mongoClient;
@@ -12,24 +15,20 @@ export const Database = {
         port: parseInt(process.env.MYSQL_PORT, 10),
         user: process.env.MYSQL_USER,
         password: process.env.MYSQL_PASS,
-        database: process.env.MYSQL_DATABASE,
-        dateStrings: true,
+        database: process.env.MYSQL_DB,
         waitForConnections: true,
-
-        // Spread conditional properties correctly
+        // The spread operator correctly handles the conditional properties
         ...(process.env.ENV !== "test"
           ? {
               connectionLimit:
                 parseInt(process.env.MYSQL_MAX_POOL_SIZE, 10) || 10,
               queueLimit: parseInt(process.env.MYSQL_QUEUE_LIMIT, 10) || 0,
-              ssl: false, // mysql:8 without certs → disable SSL
+              ssl: { rejectUnauthorized: true },
               allowPublicKeyRetrieval: true,
             }
           : {
-              connectionLimit: 100,
-              queueLimit: 100,
-              ssl: false,
               allowPublicKeyRetrieval: false,
+              ssl: false,
             }),
       });
     }
@@ -42,9 +41,12 @@ export const Database = {
         `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASS}` +
         `@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${process.env.MONGO_DB}` +
         `?authSource=admin` +
-        (process.env.ENV !== "test" ? `&ssl=false` : `&ssl=false`);
+        (process.env.ENV !== "test" ? `&ssl=true` : `&ssl=false`);
+
+      console.log("Mongo URI: ", mongoUri);
 
       mongoClient = new MongoClient(mongoUri, {
+        // Enforce the pool size limit if provided as a numeric type
         maxPoolSize: parseInt(process.env.MONGO_MAX_POOL_SIZE, 10) || 10,
       });
       await mongoClient.connect();
