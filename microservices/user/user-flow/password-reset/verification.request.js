@@ -2,9 +2,6 @@ import crypto from "crypto";
 import argon2 from "argon2";
 import Verification from "../../verification/control";
 import { PASS_RESET_METHOD } from "./constant";
-import { CredentialsRepository } from "../../credentials/repository";
-
-const table = "password_reset_verifications";
 
 export class ResetPasswordVerificationRequest {
   method;
@@ -18,7 +15,10 @@ export class ResetPasswordVerificationRequest {
     }
   }
 
-  async run(user_id) {
+  async run(user_id, device_info) {
+    if(typeof device_info !== "string")
+      throw new Error(`device_info is expected to be a string but got ${typeof device_info} `);
+
     let query_to_search_contact;
     if (this.method === PASS_RESET_METHOD.EMAIL) {
       query_to_search_contact = `
@@ -41,13 +41,12 @@ export class ResetPasswordVerificationRequest {
     }
 
     const [[contact]] = await this.mysql_connection.execute(query_to_search_contact, [user_id]);
-    console.log({contact})
     if (!contact || Object.keys(contact).length === 0) {
       throw new Error(`No ${this.method} contact associated with user_id ${user_id}!`);
     }
 
     const jti = crypto.randomUUID();
-    const request_payload = { user_id, jti };
+    const request_payload = { user_id, jti, device_info };
 
     if (this.method === PASS_RESET_METHOD.EMAIL) {
       request_payload.email = contact.email;
