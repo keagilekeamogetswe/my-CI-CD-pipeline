@@ -54,6 +54,6 @@ export class ResetPasswordVerificationConfirmation {
       throw new Error("Verification request has already been confirmed or expired");
     }
     // Issue opaque token for password reset session
-    return await setNewPasswordToken.generateOpaque(user_id, result.id, this.mysql_connection);
+    return await setNewPasswordToken.generateOpaque(user_id, result.id, c_device_info, this.mysql_connection);
   }
 }

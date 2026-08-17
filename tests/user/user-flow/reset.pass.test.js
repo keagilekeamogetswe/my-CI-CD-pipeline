@@ -71,7 +71,7 @@ describe("User Creation flow tests",()=>{
         console.log("done")
       }
     });
-  it("Requesting a password reset with email",async ()=>{
+  it("Requesting a password reset with current password",async ()=>{
     const phone = {code: "27", dial_code_id: dial_code_id , body: "123456789"}
     const new_pass = "new password"
     const has_reset = await resetWithCurrentPassword(user_id, user_pass, new_pass, mysql_connection)
@@ -85,10 +85,12 @@ describe("User Creation flow tests",()=>{
   it("Requesting a password reset with phone",async ()=>{
     const phone = {code: "27", dial_code_id: dial_code_id , body: "123456789"}
     const new_pass = "new password"
+
     //Link to phone
     await CredentialsRepository.linkPhone(user_id, phone, mysql_connection)
     // Get the token
-    const token = await AccountPasswordReset.requestSMS(user_id, mysql_connection)
+    const device_info = "some device info"
+    const token = await AccountPasswordReset.requestSMS(user_id, device_info, mysql_connection)
     //
     const reset_request_query = "SELECT * FROM password_reset_verifications WHERE user_id= ?"
     const [[password_reset_request_data]] = await mysql_connection.execute(reset_request_query, [user_id]);
@@ -96,7 +98,7 @@ describe("User Creation flow tests",()=>{
     expect(password_reset_request_data.confirmed).toBeFalsy()
     expect(password_reset_request_data.method).toBe(PASS_RESET_METHOD.PHONE)
     expect(password_reset_request_data).toHaveProperty('jti')
-    const opaque_data = await AccountPasswordReset.confirm(user_id, token, '123456789', mysql_connection)
+    const opaque_data = await AccountPasswordReset.confirm(user_id, token, '123456789', device_info, mysql_connection)
     const opaque_token = opaque_data.token
     const opaque_id  = opaque_data.token_id
     const opaque_query = "SELECT * FROM password_reset_tokens WHERE id= ?"
@@ -104,7 +106,7 @@ describe("User Creation flow tests",()=>{
     expect(registered_reset_opaque_data.used).toBeFalsy(0)
     expect(registered_reset_opaque_data.used_at).toBeNullable(0)
     expect(registered_reset_opaque_data).toHaveProperty('verification_id')
-    const has_reset_successfully = await AccountPasswordReset.resetPassword(user_id, opaque_id, opaque_token, new_pass, mysql_connection)
+    const has_reset_successfully = await AccountPasswordReset.resetPassword(user_id, opaque_id, opaque_token, new_pass, device_info, mysql_connection)
     const [[confirmed_reset_opaque_data]] = await mysql_connection.execute(opaque_query, [opaque_id]);
     expect(confirmed_reset_opaque_data.used).toBeTruthy()
     expect(confirmed_reset_opaque_data.used_at).toBeTruthy(0)
@@ -115,8 +117,9 @@ describe("User Creation flow tests",()=>{
     const new_pass = "new password"
     //Link to phone
     await CredentialsRepository.linkEmail(user_id, email, mysql_connection)
+    const device_info = "some device info"
     // Get the token
-    const token = await AccountPasswordReset.requestEmail(user_id, mysql_connection)
+    const token = await AccountPasswordReset.requestEmail(user_id, device_info,mysql_connection)
     //
     const reset_request_query = "SELECT * FROM password_reset_verifications WHERE user_id= ?"
     const [[password_reset_request_data]] = await mysql_connection.execute(reset_request_query, [user_id]);
@@ -124,7 +127,7 @@ describe("User Creation flow tests",()=>{
     expect(password_reset_request_data.confirmed).toBeFalsy()
     expect(password_reset_request_data.method).toBe(PASS_RESET_METHOD.EMAIL)
     expect(password_reset_request_data).toHaveProperty('jti')
-    const opaque_data = await AccountPasswordReset.confirm(user_id, token, '123456789', mysql_connection)
+    const opaque_data = await AccountPasswordReset.confirm(user_id, token, '123456789', device_info, mysql_connection)
     const opaque_token = opaque_data.token
     const opaque_id  = opaque_data.token_id
     const opaque_query = "SELECT * FROM password_reset_tokens WHERE id= ?"
@@ -132,7 +135,7 @@ describe("User Creation flow tests",()=>{
     expect(registered_reset_opaque_data.used).toBeFalsy(0)
     expect(registered_reset_opaque_data.used_at).toBeNullable(0)
     expect(registered_reset_opaque_data).toHaveProperty('verification_id')
-    const has_reset_successfully = await AccountPasswordReset.resetPassword(user_id, opaque_id, opaque_token, new_pass, mysql_connection)
+    const has_reset_successfully = await AccountPasswordReset.resetPassword(user_id, opaque_id, opaque_token, new_pass, device_info, mysql_connection)
     const [[confirmed_reset_opaque_data]] = await mysql_connection.execute(opaque_query, [opaque_id]);
     expect(confirmed_reset_opaque_data.used).toBeTruthy()
     expect(confirmed_reset_opaque_data.used_at).toBeTruthy(0)
