@@ -11,25 +11,25 @@ export const AccountPasswordReset = (() => {
   * access to a verified contact method.
   */
   return {
-    async requestEmail(user_id, mysql_connection){
+    async requestEmail(user_id,device_info, mysql_connection){
       const request_object = new ResetPasswordVerificationRequest(PASS_RESET_METHOD.EMAIL, mysql_connection)
-      const token_id = await request_object.run(user_id)
+      const token_id = await request_object.run(user_id, device_info)
       return token_id;
     },
-    async requestSMS(user_id, mysql_connection){
+    async requestSMS(user_id, device_info, mysql_connection){
       const request_object = new ResetPasswordVerificationRequest(PASS_RESET_METHOD.PHONE, mysql_connection)
-      const token_id = await request_object.run(user_id);
+      const token_id = await request_object.run(user_id, device_info);
       return token_id;
     },
     async requestUsingCurrentPassword(user_id, current_password, new_password, mysql_connection){
       return await resetWithCurrentPassword(user_id, current_password, new_password, mysql_connection)
     },
-    async confirm(user_id, token, otp,  mysql_connection){
+    async confirm(user_id, token, otp, device_info,  mysql_connection){
       const confirmation_object = new ResetPasswordVerificationConfirmation(mysql_connection)
-      return await confirmation_object.run(user_id, token, otp)
+      return await confirmation_object.run(user_id, token, otp, device_info)
     },
-    async resetPassword(user_id, token_id, token, new_password, mysql_connection){
-      return await setNewPasswordToken.redeemOpaque(user_id, token_id, token,new_password, mysql_connection)
+    async resetPassword(user_id, token_id, token, new_password, device_info, mysql_connection){
+      return await setNewPasswordToken.redeemOpaque(user_id, token_id, token, new_password, device_info, mysql_connection)
     }
   }
 })()

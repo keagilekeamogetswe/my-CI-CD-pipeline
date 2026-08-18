@@ -10,9 +10,15 @@ export class ResetPasswordVerificationConfirmation {
     this.mysql_connection = mysql_connection;
   }
 
-  async run(user_id, token, otp) {
-    const payload = await Verification.confirm(token, otp); // Throws if invalid
+  async run(user_id, token, otp, c_device_info) {
+    // Enforcing current device info to be string
+    if(typeof c_device_info !== "string")
+      throw new Error(`device_info is expect to be a string but got ${typeof c_device_info} `);
 
+    const payload = await Verification.confirm(token, otp); // Throws if invalid
+    const device_info_matching = payload.device_info === c_device_info
+    if(!device_info_matching)
+      throw new Error("Current device info does not match token's device info")
     if (payload.user_id !== user_id) {
       throw new Error("User IDs do not match!");
     }
@@ -21,7 +27,8 @@ export class ResetPasswordVerificationConfirmation {
     const query = `
       SELECT id, verification_token_hash
       FROM password_reset_verifications
-      WHERE expires_at > NOW() AND user_id = ? AND jti = ? AND confirmed = FALSE;
+      WHERE expires_at > NOW() AND user_id = ? AND jti = ? AND confirmed = FALSE
+      LIMIT 1;
     `;
     const [[result]] = await this.mysql_connection.execute(query, [user_id, payload.jti]);
 
@@ -39,14 +46,14 @@ export class ResetPasswordVerificationConfirmation {
     const updateConfirmationQuery = `
       UPDATE password_reset_verifications
       SET confirmed = TRUE, confirmed_at = NOW()
-      WHERE user_id = ? AND jti = ?;
+      WHERE user_id = ? AND jti = ? AND confirmed = FALSE;
     `;
     const [updateResult] = await this.mysql_connection.execute(updateConfirmationQuery, [user_id, payload.jti]);
-
-    if (updateResult.affectedRows === 0) {
+    if (updateResult.affectedRows !== 1) {
       console.warn("No rows updated during verification confirmation");
+      throw new Error("Verification request has already been confirmed or expired");
     }
     // Issue opaque token for password reset session
-    return await setNewPasswordToken.generateOpaque(user_id, result.id, this.mysql_connection);
+    return await setNewPasswordToken.generateOpaque(user_id, result.id, c_device_info, this.mysql_connection);
   }
 }
