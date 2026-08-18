@@ -1,4 +1,4 @@
-class DeviceInfo {
+export class DeviceInfo {
   constructor(deviceName, fingerPrint, ipAddress) {
     this.deviceName = deviceName;
     this.fingerPrint = fingerPrint;
@@ -8,6 +8,14 @@ class DeviceInfo {
   toObject() {
     return {
       device_name: this.deviceName,
+      finger_print: this.fingerPrint,
+      ip_address: this.ipAddress,
+    };
+  }
+
+  toSessionPayload() {
+    return {
+      device_info: this.deviceName,
       finger_print: this.fingerPrint,
       ip_address: this.ipAddress,
     };

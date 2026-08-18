@@ -10,13 +10,22 @@ export const AccountAuthToken = (() => {
     refresh: {
       async create(payload, mysql_connection) {
         const session_payload = {};
-        const required = ["ip_address", "device_info", "fp_hash", "user_id"];
-
+        const required = ["ip_address", "device_info", "finger_print", "user_id"];
+        // Keep only the values required to create a session.
         Object.keys(payload).forEach((key) => {
           if (required.includes(key)) {
             session_payload[key] = payload[key];
           }
         });
+        required.forEach((key) => {
+          if (session_payload[key] == null || session_payload[key] === "") {
+            throw new Error(`Required field missing: ${key}`);
+          }
+        });
+
+        const fp_hash = await argon2.hash(session_payload.finger_print);
+        delete session_payload.finger_print;
+        session_payload.fp_hash = fp_hash;
 
         const jti = randomUUID();
         session_payload.jti = jti;
@@ -31,7 +40,6 @@ export const AccountAuthToken = (() => {
         );
 
         const token_hash = await argon2.hash(refresh_token);
-
         session_payload.created_at = now;
         session_payload.expires_at = exp;
         session_payload.token_hash = token_hash;
