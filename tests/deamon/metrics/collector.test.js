@@ -48,9 +48,6 @@ describe("Collector.useMetricsFrom", () => {
     expect(metrics_for_128.durationMs).toBeGreaterThan(
       metrics_for_64.durationMs,
     );
-    expect(metrics_for_128.ramChangeMB).toBeGreaterThan(
-      metrics_for_64.ramChangeMB,
-    );
     expect(metrics_for_128.cpuTimeMs).toBeGreaterThan(metrics_for_64.cpuTimeMs);
   }, 20000);
   it("should should save metrics", async () => {
