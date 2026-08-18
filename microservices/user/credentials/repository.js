@@ -1,3 +1,4 @@
+import argon2 from "argon2"
 export const CredentialsRepository = (()=>{
 
   return {
@@ -43,6 +44,16 @@ export const CredentialsRepository = (()=>{
         "UPDATE user_authentication SET password_hash = ? WHERE id = ?", [new_password_hash, user_id]
       );
       return result.affectedRows > 0;
-    }
+    },
+    verifyPassword: async (user_id, plainPassword, mysql_connection) => {
+      const query = "SELECT password_hash FROM user_authentication WHERE id = ? LIMIT 1;";
+      const [rows] = await mysql_connection.execute(query, [user_id]);
+
+      if (rows.length === 0) {
+        throw new Error("User not found");
+      }
+      const db_hashed_pass = rows[0].password_hash;
+      return await argon2.verify(db_hashed_pass, plainPassword);
+    },
   }
 })()
