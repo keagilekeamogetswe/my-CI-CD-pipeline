@@ -65,7 +65,7 @@ fi
 # update the patterns below.
 PATTERNS=(
     "kubernetes/skaffold.yaml"
-    "k8s-bundle/*/skaffold.yaml"
+    "services/*/skaffold.yaml"
     "microservices/*.skaffold.yaml"
 
 )
