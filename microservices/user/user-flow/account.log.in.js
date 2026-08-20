@@ -1,13 +1,15 @@
 import { AccountAuthToken } from "./account.auth.tokens.js";
 import { CredentialsRepository } from "../credentials/repository.js";
 import { DeviceInfo } from "../../utility/device.infor.js";
+import { LoginErrorRepository } from "../config/login.errors.js";
 
 export async function Login(user_id, password, device_info, mysql_connection) {
   if (typeof device_info !== "string") {
-    throw new Error(`string is expected for device_info but got ${typeof device_info}.`);
+    console.log(`string is expected for device_info but got ${typeof device_info}.`)
+    throw new Error(LoginErrorRepository.DEVICE_INFOR_STR_ERROR);
   }
   if (typeof password !== "string" || password.length === 0) {
-    throw new Error("Password cannot be empty");
+    throw new Error(LoginErrorRepository.EMPTY_PASSWORD);
   }
   // Verify password
   const pass_correct = await CredentialsRepository.verifyPassword(
@@ -16,7 +18,7 @@ export async function Login(user_id, password, device_info, mysql_connection) {
     mysql_connection,
   );
   if (!pass_correct) {
-    throw new Error("Invalid credentials");
+    throw new Error(LoginErrorRepository.INVALID_CREDENTIALS);
   }
 
   // Build device info object
