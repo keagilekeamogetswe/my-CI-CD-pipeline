@@ -10,7 +10,7 @@ The root `autoload.sh` script (and its backing `build.sh` / `deploy.sh` tools) r
 
 * **Strict Path Conventions:** Every new microservice or infrastructure bundle must fit into one of our three recognized structural patterns:
   * **Service Manifests:** `microservices/<service-name>.skaffold.yaml`
-  * **Infrastructure Bundles:** `k8s-bundle/<bundle-name>/skaffold.yaml`
+  * **Infrastructure Bundles:** `services/<bundle-name>/skaffold.yaml`
   * **Global Cluster Orchestration:** `kubernetes/skaffold.yaml`
 * **Reference Example (`microservices/busybox`):**
   * Use `microservices/busybox` and its accompanying configuration file `microservices/busybox.skaffold.yaml` as the blueprint for creating new microservices.

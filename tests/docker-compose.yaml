@@ -32,7 +32,7 @@ services:
       mysql:
         condition: service_healthy
     volumes:
-       - ../k8s-bundle/mysql/migrations/flyway/migrations:/flyway/sql:ro
+       - ../services/mysql/migrations/flyway/migrations:/flyway/sql:ro
     command:
       - -url=jdbc:mysql://mysql:3306/${MYSQL_DB}?allowPublicKeyRetrieval=true&useSSL=false
       - -user=root
