@@ -3,6 +3,7 @@ import { CredentialsRepository } from "../../credentials/repository.js";
 import { DeviceInfo } from "../../../utility/device.infor.js";
 import { Database } from "../../db.js";
 import { Login } from "../../user-flow/account.log.in.js";
+import { LoginErrorRepository } from "../../config/login.errors.js";
 
 export async function logInHandler(call, callback) {
   let connection;
@@ -22,15 +23,15 @@ export async function logInHandler(call, callback) {
       success: true,
     });
   } catch (error) {
-    const grpcError = new Error(error.message || "Unable to log in");
-    grpcError.code =
-      error.message === "Invalid credentials"
-        ? grpc.status.UNAUTHENTICATED
-        : error.message === "Password cannot be empty" ||
-            error.message?.includes("device_info")
-          ? grpc.status.INVALID_ARGUMENT
-          : grpc.status.INTERNAL;
-    callback(grpcError);
+    console.log(error);
+    let errorMessage = LoginErrorRepository.UNEXPECTED_ERROR;
+    if (error?.message === LoginErrorRepository.DEVICE_INFOR_STR_ERROR)
+      errorMessage = LoginErrorRepository.DEVICE_INFOR_STR_ERROR;
+    else if (error?.message === LoginErrorRepository.EMPTY_PASSWORD)
+      errorMessage = LoginErrorRepository.EMPTY_PASSWORD;
+    else if (error?.message === LoginErrorRepository.INVALID_CREDENTIALS)
+      errorMessage = LoginErrorRepository.INVALID_CREDENTIALS;
+    callback(null, { message: errorMessage, success: false });
   } finally {
     connection?.release();
   }

@@ -17,10 +17,12 @@ import { fileURLToPath } from "url";
 import grpc from "@grpc/grpc-js";
 import protoLoader from "@grpc/proto-loader";
 import { promisify } from "util";
+import { LoginErrorRepository } from "../../../microservices/user/config/login.errors.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let childServer;
 let client;
+let logInAsync;
 
 describe("User Creation flow tests", () => {
   let mysql_connection;
@@ -36,6 +38,7 @@ describe("User Creation flow tests", () => {
         {
           execArgv: ["--import=extensionless/register"],
           env: { ...process.env },
+          silent: false,
         },
       );
 
@@ -52,19 +55,25 @@ describe("User Creation flow tests", () => {
             },
           );
           const grpcObj = grpc.loadPackageDefinition(packageDef);
-          const CredentialsService = grpcObj.user.CredentialsService;
 
-          client = new CredentialsService(
+          const Service =
+            grpcObj.user.CredentialsService || grpcObj.user.ProfileService;
+
+          client = new Service(
             `localhost:${msg.port || 50051}`,
             grpc.credentials.createInsecure(),
           );
+
+          logInAsync = promisify(client.LogIn.bind(client));
           resolve();
         }
       });
 
       childServer.on("error", reject);
       childServer.on("exit", (code) => {
-        if (code !== 0) reject(new Error(`Child exited with code ${code}`));
+        if (code !== 0 && code !== null) {
+          reject(new Error(`Child exited with code ${code}`));
+        }
       });
     });
   });
@@ -98,12 +107,16 @@ describe("User Creation flow tests", () => {
 
   afterAll(() => {
     client?.close();
-    childServer?.kill();
+    if (childServer) {
+      childServer.kill("SIGTERM");
+      setTimeout(() => {
+        if (!childServer.killed) childServer.kill("SIGKILL");
+      }, 1000);
+    }
   });
 
   afterEach(async () => {
     try {
-      // Step-by-step cleanup to respect foreign key constraints
       const [[user]] = await mysql_connection.execute(
         "SELECT phone_id FROM user_authentication WHERE id = ?",
         [user_id],
@@ -136,9 +149,7 @@ describe("User Creation flow tests", () => {
     }
   });
 
-  it("should log in using grpc", async () => {
-    const logInAsync = promisify(client.LogIn.bind(client));
-
+  it("should log in successfully with valid credentials", async () => {
     const response = await logInAsync({
       user_id: String(user_id),
       password: user_pass,
@@ -148,8 +159,48 @@ describe("User Creation flow tests", () => {
         ip_address: "127.0.0.1",
       }),
     });
-    console.log(response);
+
     expect(response.success).toBe(true);
     expect(response.refresh_token).toEqual(expect.any(String));
+  });
+
+  it("should fail when an incorrect password is provided", async () => {
+    await expect(
+      logInAsync({
+        user_id: String(user_id),
+        password: "wrong_password_123",
+        device_info: JSON.stringify({
+          device_name: "Vitest",
+          finger_print: "grpc-test-fingerprint",
+          ip_address: "127.0.0.1",
+        }),
+      }),
+    ).resolves.toMatchObject({
+      message: LoginErrorRepository.INVALID_CREDENTIALS,
+    });
+  });
+
+  it("should fail when device_info is invalid JSON", async () => {
+    await expect(
+      logInAsync({
+        user_id: String(user_id),
+        password: user_pass,
+        device_info: "invalid-json-string",
+      }),
+    ).resolves.toMatchObject({
+      message: LoginErrorRepository.UNEXPECTED_ERROR,
+    });
+  });
+
+  it("should fail when device_info is missing or empty", async () => {
+    await expect(
+      logInAsync({
+        user_id: String(user_id),
+        password: user_pass,
+        device_info: "",
+      }),
+    ).resolves.toMatchObject({
+      message: LoginErrorRepository.UNEXPECTED_ERROR,
+    });
   });
 });
