@@ -5,6 +5,7 @@ import { Database } from "../../../microservices/user/db";
 import { CredentialsRepository } from "../../../microservices/user/credentials/repository";
 import { Login } from "../../../microservices/user/user-flow/account.log.in";
 import { JWTHelper } from "../../../microservices/utility/jwt";
+import { LoginErrorRepository } from "../../../microservices/user/config/login.errors";
 
 describe("User login flow tests", () => {
   let mysql_connection;
@@ -65,7 +66,7 @@ describe("User login flow tests", () => {
   it("rejects an incorrect password without creating a session", async () => {
     await expect(
       Login(user_id, "incorrect password", JSON.stringify(device), mysql_connection),
-    ).rejects.toThrow("Invalid credentials");
+    ).rejects.toThrow(LoginErrorRepository.INVALID_CREDENTIALS);
 
     const [[session]] = await mysql_connection.execute(
       "SELECT * FROM user_session WHERE user_id = ?",
@@ -77,6 +78,6 @@ describe("User login flow tests", () => {
   it("requires device info to be a string", async () => {
     await expect(
       Login(user_id, password, device, mysql_connection),
-    ).rejects.toThrow("string is expected for device_info");
+    ).rejects.toThrow(LoginErrorRepository.DEVICE_INFOR_STR_ERROR);
   });
 });
