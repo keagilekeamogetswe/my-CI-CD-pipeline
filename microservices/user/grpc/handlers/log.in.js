@@ -7,23 +7,34 @@ import { LoginErrorRepository } from "../../config/login.errors.js";
 
 export async function logInHandler(call, callback) {
   let connection;
+  let transactionStarted = false;
 
   try {
-    const { user_id, password, device_info } = call.request;
     connection = await Database.getSQLConnection();
+    await connection.beginTransaction();
+    transactionStarted = true;
+
+    const { user_id, password, device_info } = call.request;
+
     const refreshToken = await Login(
       user_id,
       password,
       device_info,
       connection,
     );
+    await connection.commit();
     callback(null, {
       refresh_token: refreshToken,
       message: "Login was successful",
       success: true,
     });
   } catch (error) {
-    console.log(error);
+    try {
+      if (!transactionStarted) throw error;
+      await connection.rollback(); // Rollback ONLY on error
+    } catch (rollbackError) {
+      if (transactionStarted) console.error("Rollback failed:", rollbackError);
+    }
     let errorMessage = LoginErrorRepository.UNEXPECTED_ERROR;
     if (error?.message === LoginErrorRepository.DEVICE_INFOR_STR_ERROR)
       errorMessage = LoginErrorRepository.DEVICE_INFOR_STR_ERROR;
