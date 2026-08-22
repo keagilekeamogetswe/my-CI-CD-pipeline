@@ -17,12 +17,12 @@ import { LoginErrorRepository } from "../../microservices/user/config/login.erro
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let serverProcess;
-let userLoginClient;
+let recoverAccountClient;
 let mysqlConnection;
 let userId;
 const password = "some strong password!";
 
-describe("UserLoginGRPCClient", () => {
+describe("UserRecoverAccountGRPCClient", () => {
   beforeAll(async () => {
     process.env.USER_GRPC_HOST = "localhost";
 
@@ -48,7 +48,7 @@ describe("UserLoginGRPCClient", () => {
       });
     });
 
-    ({ UserLoginGRPCClient: userLoginClient } =
+    ({ UserRecoverAccountGRPCClient: recoverAccountClient } =
       await import("../../microservices/grpc-clients/user/user.log.js"));
   }, 15000);
 
@@ -100,13 +100,13 @@ describe("UserLoginGRPCClient", () => {
   });
 
   afterAll(() => {
-    userLoginClient?.close();
+    recoverAccountClient?.close();
     serverProcess?.kill("SIGTERM");
   });
 
-  it("logs in through the actual user gRPC server", async () => {
+  it("recovers an account through the actual user gRPC server", async () => {
     await expect(
-      userLoginClient.logIn({
+      recoverAccountClient.RecoverAccount({
         userId,
         password,
         deviceInfo: {
@@ -123,7 +123,7 @@ describe("UserLoginGRPCClient", () => {
 
   it("returns the server's invalid-credentials response", async () => {
     await expect(
-      userLoginClient.logIn({
+      recoverAccountClient.RecoverAccount({
         userId,
         password: "wrong password",
         deviceInfo: JSON.stringify({ device_name: "Vitest" }),
@@ -136,7 +136,7 @@ describe("UserLoginGRPCClient", () => {
 
   it("returns the server's unexpected-error response for invalid device info", async () => {
     await expect(
-      userLoginClient.logIn({
+      recoverAccountClient.RecoverAccount({
         userId,
         password,
         deviceInfo: "invalid-json-string",
@@ -149,7 +149,7 @@ describe("UserLoginGRPCClient", () => {
 
   it("rejects missing credentials before making an RPC", async () => {
     await expect(
-      userLoginClient.logIn({ userId: "", password }),
+      recoverAccountClient.RecoverAccount({ userId: "", password }),
     ).rejects.toThrow("userId and password are required");
   });
 });

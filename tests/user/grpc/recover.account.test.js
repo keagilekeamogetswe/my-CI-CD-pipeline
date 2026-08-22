@@ -22,9 +22,9 @@ import { LoginErrorRepository } from "../../../microservices/user/config/login.e
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let childServer;
 let client;
-let logInAsync;
+let recoverAccountAsync;
 
-describe("User Creation flow tests", () => {
+describe("RecoverAccount gRPC tests", () => {
   let mysql_connection;
   let dial_code_id;
   const user_pass = "some strong password!";
@@ -56,15 +56,14 @@ describe("User Creation flow tests", () => {
           );
           const grpcObj = grpc.loadPackageDefinition(packageDef);
 
-          const Service =
-            grpcObj.user.CredentialsService || grpcObj.user.ProfileService;
+          const Service = grpcObj.user.RecoverAccount;
 
           client = new Service(
             `localhost:${msg.port || 50051}`,
             grpc.credentials.createInsecure(),
           );
 
-          logInAsync = promisify(client.LogIn.bind(client));
+          recoverAccountAsync = promisify(client.RecoverAccount.bind(client));
           resolve();
         }
       });
@@ -149,8 +148,8 @@ describe("User Creation flow tests", () => {
     }
   });
 
-  it("should log in successfully with valid credentials", async () => {
-    const response = await logInAsync({
+  it("should recover an account successfully with valid credentials", async () => {
+    const response = await recoverAccountAsync({
       user_id: String(user_id),
       password: user_pass,
       device_info: JSON.stringify({
@@ -164,9 +163,9 @@ describe("User Creation flow tests", () => {
     expect(response.refresh_token).toEqual(expect.any(String));
   });
 
-  it("should fail when an incorrect password is provided", async () => {
+  it("should reject an incorrect password", async () => {
     await expect(
-      logInAsync({
+      recoverAccountAsync({
         user_id: String(user_id),
         password: "wrong_password_123",
         device_info: JSON.stringify({
@@ -180,9 +179,9 @@ describe("User Creation flow tests", () => {
     });
   });
 
-  it("should fail when device_info is invalid JSON", async () => {
+  it("should reject invalid device_info JSON", async () => {
     await expect(
-      logInAsync({
+      recoverAccountAsync({
         user_id: String(user_id),
         password: user_pass,
         device_info: "invalid-json-string",
@@ -192,9 +191,9 @@ describe("User Creation flow tests", () => {
     });
   });
 
-  it("should fail when device_info is missing or empty", async () => {
+  it("should reject missing or empty device_info", async () => {
     await expect(
-      logInAsync({
+      recoverAccountAsync({
         user_id: String(user_id),
         password: user_pass,
         device_info: "",

@@ -5,7 +5,7 @@ import { Database } from "../../db.js";
 import { Login } from "../../user-flow/account.log.in.js";
 import { LoginErrorRepository } from "../../config/login.errors.js";
 
-export async function logInHandler(call, callback) {
+export async function RecoverAccountHandler(call, callback) {
   let connection;
   let transactionStarted = false;
 
