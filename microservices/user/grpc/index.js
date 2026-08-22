@@ -5,7 +5,9 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 
 import { Database } from "../db.js";
-import { logInHandler } from "./handlers/log.in.js";
+import { RecoverAccountHandler } from "./handlers/recover.account.js";
+import { CreateAccountRequestHandler } from "./handlers/account.creation.js";
+import { CreateAccountConfirmHandler } from "./handlers/account.creation.confirm.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -20,7 +22,8 @@ const packageDef = protoLoader.loadSync(PROTO_PATH, {
 });
 const grpcObj = grpc.loadPackageDefinition(packageDef);
 
-const CredentialsService = grpcObj.user.CredentialsService;
+const RecoverAccountService = grpcObj.user.RecoverAccount;
+const AccountCreationService = grpcObj.user.AccountCreation;
 
 function log(message, extra = {}) {
   const ts = new Date().toISOString();
@@ -35,8 +38,13 @@ function log(message, extra = {}) {
 export function startGrpcServer() {
   const server = new grpc.Server();
 
-  server.addService(CredentialsService.service, {
-    LogIn: logInHandler,
+  server.addService(RecoverAccountService.service, {
+    RecoverAccount: RecoverAccountHandler,
+  });
+
+  server.addService(AccountCreationService.service, {
+    CreateAccountRequest: CreateAccountRequestHandler,
+    CreateAccountConfirm: CreateAccountConfirmHandler,
   });
 
   server.bindAsync(
@@ -57,7 +65,7 @@ export function startGrpcServer() {
         process.send({ type: "READY" });
       }
 
-      log("[gRPC] CredentialsService started", {
+      log("[gRPC] RecoverAccount service started", {
         port: process.env.GRPC_USER_PORT || 50051,
       });
     },

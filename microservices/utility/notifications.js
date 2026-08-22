@@ -1,10 +1,12 @@
-const Notification = (()=>{
+const Notification = (() => {
   return {
     SMS: {
-      send: async (phone_number, message) => {}
+      send: async (phone_number, message) => {},
     },
     EMAIL: {
-      send: async (email, subject, body) => {}
-    }
-  }
-})()
+      send: async (email, subject, body) => {},
+    },
+  };
+})();
+
+export { Notification };

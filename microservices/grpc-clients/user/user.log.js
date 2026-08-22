@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const host = process.env.USER_GRPC_HOST ?? "user-grpc";
 
-export const UserLoginGRPCClient = (() => {
+export const UserRecoverAccountGRPCClient = (() => {
   const PROTO_PATH =
     process.env.USER_PROTO_PATH ||
     path.resolve(__dirname, "../../../microservices/proto/user.proto");
@@ -20,13 +20,13 @@ export const UserLoginGRPCClient = (() => {
   });
 
   const grpcObj = grpc.loadPackageDefinition(packageDef);
-  const CredentialsService = grpcObj.user?.CredentialsService;
+  const RecoverAccountService = grpcObj.user?.RecoverAccount;
 
-  if (!CredentialsService) {
-    throw new Error("Failed to load user.CredentialsService from proto schema");
+  if (!RecoverAccountService) {
+    throw new Error("Failed to load user.RecoverAccount from proto schema");
   }
 
-  const client = new CredentialsService(
+  const client = new RecoverAccountService(
     `${host}:50051`,
     grpc.credentials.createInsecure(),
   );
@@ -42,7 +42,7 @@ export const UserLoginGRPCClient = (() => {
      * @param {number} [options.timeoutMs=5000] - Call deadline in milliseconds.
      * @returns {Promise<{refresh_token: string, success: boolean, message?: string}>}
      */
-    async logIn({ userId, password, deviceInfo }, options = {}) {
+    async RecoverAccount({ userId, password, deviceInfo }, options = {}) {
       if (!userId || !password) {
         throw new Error(
           "Missing required credentials: userId and password are required.",
@@ -64,10 +64,10 @@ export const UserLoginGRPCClient = (() => {
       const deadline = new Date(Date.now() + (options.timeoutMs || 5000));
 
       return new Promise((resolve, reject) => {
-        client.LogIn(requestPayload, { deadline }, (err, response) => {
+        client.RecoverAccount(requestPayload, { deadline }, (err, response) => {
           if (err) {
             const enrichedError = new Error(
-              `gRPC LogIn Failed [Code ${err.code}]: ${err.details || err.message}`,
+              `gRPC RecoverAccount Failed [Code ${err.code}]: ${err.details || err.message}`,
             );
             enrichedError.code = err.code;
             enrichedError.details = err.details;
