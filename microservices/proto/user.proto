@@ -9,8 +9,17 @@ service RecoverAccount {
 
 service AccountCreation {
   rpc CreateAccountRequest (ProfileData) returns (ProfileRequestResponse);
+  rpc CreateAccountConfirm (VerificationConfirmationInput) returns (CreateAccountConfirmResponse);
 }
-
+message VerificationConfirmationInput{
+  string code = 1;
+  string verification_token = 2;
+}
+message CreateAccountConfirmResponse {
+  string refresh_token = 1;
+  bool success = 2;
+  string message = 3;
+}
 message ProfileData {
   string name = 1;
   string lastname = 2;

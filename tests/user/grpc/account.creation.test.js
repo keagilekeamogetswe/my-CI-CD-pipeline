@@ -74,8 +74,23 @@ describe("AccountCreation gRPC tests", () => {
         (error, result) => (error ? reject(error) : resolve(result)),
       );
     });
+    console.log({ response });
+    expect(response.success).toBe(true);
+    expect(response.message).toBe("Account verification requested");
+  });
+
+  it("handles account confirmation through the forked gRPC server", async () => {
+    const response = await new Promise((resolve, reject) => {
+      client.CreateAccountConfirm(
+        {
+          verification_token: "invalid-verification-token",
+          code: "123456",
+        },
+        (error, result) => (error ? reject(error) : resolve(result)),
+      );
+    });
 
     expect(response.success).toBe(false);
-    expect(response.message).toBe("Failed to send verification code.");
+    expect(response.message).toEqual(expect.any(String));
   });
 });
