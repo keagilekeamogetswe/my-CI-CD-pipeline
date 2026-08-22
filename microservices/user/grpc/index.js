@@ -6,6 +6,7 @@ import express from "express";
 
 import { Database } from "../db.js";
 import { RecoverAccountHandler } from "./handlers/recover.account.js";
+import { CreateAccountRequestHandler } from "./handlers/account.creation.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -21,6 +22,7 @@ const packageDef = protoLoader.loadSync(PROTO_PATH, {
 const grpcObj = grpc.loadPackageDefinition(packageDef);
 
 const RecoverAccountService = grpcObj.user.RecoverAccount;
+const AccountCreationService = grpcObj.user.AccountCreation;
 
 function log(message, extra = {}) {
   const ts = new Date().toISOString();
@@ -37,6 +39,10 @@ export function startGrpcServer() {
 
   server.addService(RecoverAccountService.service, {
     RecoverAccount: RecoverAccountHandler,
+  });
+
+  server.addService(AccountCreationService.service, {
+    CreateAccountRequest: CreateAccountRequestHandler,
   });
 
   server.bindAsync(
