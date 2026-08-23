@@ -1,0 +1,205 @@
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  beforeEach,
+  afterAll,
+  afterEach,
+} from "vitest";
+
+import argon2 from "argon2";
+import { Database } from "../../../microservices/user/db.js";
+import { CredentialsRepository } from "../../../microservices/user/credentials/repository.js";
+import { fork } from "child_process";
+import path from "path";
+import { fileURLToPath } from "url";
+import grpc from "@grpc/grpc-js";
+import protoLoader from "@grpc/proto-loader";
+import { promisify } from "util";
+import { LoginErrorRepository } from "../../../microservices/user/config/login.errors.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+let childServer;
+let client;
+let recoverAccountAsync;
+
+describe("RecoverAccount gRPC tests", () => {
+  let mysql_connection;
+  let dial_code_id;
+  const user_pass = "some strong password!";
+  let user_id;
+
+  beforeAll(async () => {
+    return new Promise((resolve, reject) => {
+      childServer = fork(
+        path.resolve(__dirname, "../../../microservices/user/grpc/index.js"),
+        [],
+        {
+          execArgv: ["--import=extensionless/register"],
+          env: { ...process.env },
+          silent: false,
+        },
+      );
+
+      childServer.on("message", (msg) => {
+        if (msg.type === "READY") {
+          const packageDef = protoLoader.loadSync(
+            path.resolve(__dirname, "../../../microservices/proto/user.proto"),
+            {
+              keepCase: true,
+              longs: String,
+              enums: String,
+              defaults: true,
+              oneofs: true,
+            },
+          );
+          const grpcObj = grpc.loadPackageDefinition(packageDef);
+
+          const Service = grpcObj.user.RecoverAccount;
+
+          client = new Service(
+            `localhost:${msg.port || 50051}`,
+            grpc.credentials.createInsecure(),
+          );
+
+          recoverAccountAsync = promisify(client.RecoverAccount.bind(client));
+          resolve();
+        }
+      });
+
+      childServer.on("error", reject);
+      childServer.on("exit", (code) => {
+        if (code !== 0 && code !== null) {
+          reject(new Error(`Child exited with code ${code}`));
+        }
+      });
+    });
+  });
+
+  beforeEach(async () => {
+    mysql_connection = await Database.getSQLConnection();
+
+    await mysql_connection.execute(
+      `
+        INSERT IGNORE INTO dial_codes (abrv, dial_code, country)
+        VALUES (?, ?, ?)
+      `,
+      ["ZAR", "27", "South Africa"],
+    );
+
+    const [[dialCode]] = await mysql_connection.execute(
+      "SELECT id FROM dial_codes WHERE abrv = ?",
+      ["ZAR"],
+    );
+    dial_code_id = dialCode.id;
+
+    const hashed_pass = await argon2.hash(user_pass);
+    user_id = await CredentialsRepository.create(hashed_pass, mysql_connection);
+
+    await CredentialsRepository.linkPhone(
+      user_id,
+      { dial_code_id, body: `123${user_id}` },
+      mysql_connection,
+    );
+  });
+
+  afterAll(() => {
+    client?.close();
+    if (childServer) {
+      childServer.kill("SIGTERM");
+      setTimeout(() => {
+        if (!childServer.killed) childServer.kill("SIGKILL");
+      }, 1000);
+    }
+  });
+
+  afterEach(async () => {
+    try {
+      const [[user]] = await mysql_connection.execute(
+        "SELECT phone_id FROM user_authentication WHERE id = ?",
+        [user_id],
+      );
+
+      await mysql_connection.execute(
+        "UPDATE user_authentication SET phone_id = NULL WHERE id = ?",
+        [user_id],
+      );
+
+      if (user?.phone_id) {
+        await mysql_connection.execute(
+          "DELETE FROM phone_numbers WHERE id = ?",
+          [user.phone_id],
+        );
+      }
+
+      await mysql_connection.execute(
+        "DELETE FROM user_authentication WHERE id = ?",
+        [user_id],
+      );
+    } catch (error) {
+      console.error("Cleanup error:", error);
+    } finally {
+      if (typeof mysql_connection.release === "function") {
+        mysql_connection.release();
+      } else if (typeof mysql_connection.close === "function") {
+        await mysql_connection.close();
+      }
+    }
+  });
+
+  it("should recover an account successfully with valid credentials", async () => {
+    const response = await recoverAccountAsync({
+      user_id: String(user_id),
+      password: user_pass,
+      device_info: JSON.stringify({
+        device_name: "Vitest",
+        finger_print: "grpc-test-fingerprint",
+        ip_address: "127.0.0.1",
+      }),
+    });
+
+    expect(response.success).toBe(true);
+    expect(response.refresh_token).toEqual(expect.any(String));
+  });
+
+  it("should reject an incorrect password", async () => {
+    await expect(
+      recoverAccountAsync({
+        user_id: String(user_id),
+        password: "wrong_password_123",
+        device_info: JSON.stringify({
+          device_name: "Vitest",
+          finger_print: "grpc-test-fingerprint",
+          ip_address: "127.0.0.1",
+        }),
+      }),
+    ).resolves.toMatchObject({
+      message: LoginErrorRepository.INVALID_CREDENTIALS,
+    });
+  });
+
+  it("should reject invalid device_info JSON", async () => {
+    await expect(
+      recoverAccountAsync({
+        user_id: String(user_id),
+        password: user_pass,
+        device_info: "invalid-json-string",
+      }),
+    ).resolves.toMatchObject({
+      message: LoginErrorRepository.UNEXPECTED_ERROR,
+    });
+  });
+
+  it("should reject missing or empty device_info", async () => {
+    await expect(
+      recoverAccountAsync({
+        user_id: String(user_id),
+        password: user_pass,
+        device_info: "",
+      }),
+    ).resolves.toMatchObject({
+      message: LoginErrorRepository.UNEXPECTED_ERROR,
+    });
+  });
+});

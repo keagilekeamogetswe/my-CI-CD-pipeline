@@ -3,8 +3,43 @@ syntax = "proto3";
 package user;
 
 // Service definition
-service CredentialsService {
-  rpc LogIn (UserCredentials) returns (RefreshTokenResponse);
+service RecoverAccount {
+  rpc RecoverAccount (UserCredentials) returns (RefreshTokenResponse);
+}
+
+service AccountCreation {
+  rpc CreateAccountRequest (ProfileData) returns (ProfileRequestResponse);
+  rpc CreateAccountConfirm (VerificationConfirmationInput) returns (CreateAccountConfirmResponse);
+}
+message VerificationConfirmationInput{
+  string code = 1;
+  string verification_token = 2;
+}
+message CreateAccountConfirmResponse {
+  string refresh_token = 1;
+  bool success = 2;
+  string message = 3;
+}
+message ProfileData {
+  string name = 1;
+  string lastname = 2;
+  string dob = 3;
+  Phone phone = 4;
+  string device_info = 5;
+  string ip_address = 6;
+  string fp_hash = 7;
+}
+
+message Phone {
+  string code = 1;
+  string body = 2;
+  int32 dial_code_id = 3;
+}
+
+message ProfileRequestResponse {
+  string verification_token = 1;
+  bool success = 2;
+  string message = 3;
 }
 message UserCredentials {
   string user_id = 1;
@@ -13,6 +48,6 @@ message UserCredentials {
 }
 message RefreshTokenResponse {
   string refresh_token = 1;
-  bool success = 2; // Change boolean to bool
+  bool success = 2;
   string message = 3;
 }
