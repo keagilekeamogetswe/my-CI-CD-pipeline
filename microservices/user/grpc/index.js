@@ -6,7 +6,7 @@ import express from "express";
 
 import { Database } from "../db.js";
 import { RecoverAccountHandler } from "./handlers/recover.account.js";
-import { CreateAccountRequestHandler } from "./handlers/account.creation.js";
+import { CreateAccountRequestHandler } from "./handlers/account.creation.request.js";
 import { CreateAccountConfirmHandler } from "./handlers/account.creation.confirm.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
