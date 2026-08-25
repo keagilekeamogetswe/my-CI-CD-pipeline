@@ -1,0 +1,12 @@
+# Ignore everything by default
+/*
+
+# Whitelist root package.json
+!/package.json
+
+# Allow git to track all *-webserver
+!/microservices/*-webserver
+
+# Allow git to track all *-webserver
+
+!/tests/*-webserver
