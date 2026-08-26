@@ -2,3 +2,4 @@ node_modules
 .vscode/
 logs/
 tests/.output/
+package-lock.json
