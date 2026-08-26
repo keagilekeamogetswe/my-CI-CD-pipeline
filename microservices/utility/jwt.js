@@ -4,20 +4,28 @@ import crypto from "crypto";
 export const JWTHelper = (() => {
   return {
     // Signed JWT (JWS) — integrity only
-    sign: async (payload, exp, secret) => {
-      const key = new TextEncoder().encode(secret);
+    sign: async (payload, exp, privateKeyPem) => {
+      // Convert PEM private key to CryptoKey
+      const privateKey = await jose.importPKCS8(privateKeyPem, "RS256");
+
       const jwt = await new jose.SignJWT(payload)
-        .setProtectedHeader({ alg: "HS256" })
+        .setProtectedHeader({ alg: "RS256" })
         .setIssuedAt()
         .setJti(payload.jti ?? crypto.randomUUID())
-        .setExpirationTime(exp) // e.g. "2h" or numeric timestamp
-        .sign(key);
+        .setExpirationTime(exp) 
+        .sign(privateKey);
+
       return jwt;
     },
 
-    verify: async (jwtToken, secret) => {
-      const key = new TextEncoder().encode(secret);
-      const { payload, protectedHeader } = await jose.jwtVerify(jwtToken, key);
+    verify: async (jwtToken, publicKeyPem) => {
+      // Convert PEM public key to CryptoKey
+      const publicKey = await jose.importSPKI(publicKeyPem, "RS256");
+
+      const { payload, protectedHeader } = await jose.jwtVerify(jwtToken, publicKey, {
+        algorithms: ["RS256"],
+      });
+
       return { payload, protectedHeader };
     },
 
