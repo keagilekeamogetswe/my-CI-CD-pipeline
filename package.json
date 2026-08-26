@@ -4,7 +4,8 @@
   "license": "ISC",
   "type": "module",
   "scripts": {
-    "swift-webserver": "node --import=extensionless/register microservices/swift-webserver/index.js"
+    "swift-webserver": "node --import=extensionless/register microservices/swift-webserver/index.js",
+    "test": "node tests/test.script.js"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.4",
