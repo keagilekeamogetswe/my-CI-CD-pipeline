@@ -2,16 +2,15 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import ApiRouter from "./routes/api.routes";
+import { authMiddleware } from "./middleware/access.token";
 
-// Method 1: Built-in for Node.js v20.11.0+ (Recommended for Node v24)
-// const __dirname = import.meta.dirname;
-
-// Method 2: Standard cross-version ESM approach
+// Standard cross-version ESM approach
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
+app.use(authMiddleware);
 
 app.use("/api", ApiRouter);
 
