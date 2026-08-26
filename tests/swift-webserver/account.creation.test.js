@@ -14,7 +14,6 @@ import fs from "node:fs";
 import argon2 from "argon2";
 import { Database } from "../../microservices/user/db.js";
 import { JWTHelper } from "../../microservices/utility/jwt.js";
-import { UserCreateAccountRequestGRPCClient } from "../../microservices/grpc-clients/user/account.creation.request.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = "3002";
@@ -233,6 +232,12 @@ describe("User Account Creation Flow (gRPC & HTTP E2E)", () => {
   // ---------------------------------------------------------------------------
   describe("Cross-Layer Integration", () => {
     it("requests token via gRPC client and completes verification via HTTP endpoint", async () => {
+      process.env.USER_GRPC_HOST = "localhost";
+      await new Promise((resolve) => {
+        setTimeout(() => {
+          resolve();
+        }, 200);
+      });
       const requestRes = await accountRequestClient.CreateAccountRequest({
         name: "Hybrid",
         lastname: "User",
