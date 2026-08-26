@@ -2,7 +2,11 @@
 import fs from "fs";
 import { JWTHelper } from "../../utility/jwt";
 
-const WHITELISTED_ROUTES = ["/api/start", "/api/start/verify"];
+const WHITELISTED_ROUTES = [
+  "/api/start",
+  "/api/start/verify",
+  "/api/white-listed",
+];
 const PUBLIC_KEY = process.env.JWT_ACCESSS_TOKEN_PUBLIC_KEY;
 
 export async function authMiddleware(req, res, next) {

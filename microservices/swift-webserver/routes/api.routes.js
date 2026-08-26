@@ -5,5 +5,8 @@ const ApiRouter = express.Router();
 ApiRouter.get("/protected", (req, res) => {
   res.json({ message: "made it to the protected route." });
 });
+ApiRouter.get("/white-listed", (req, res) => {
+  res.json({ message: "made it to the whitelisted route." });
+});
 ApiRouter.use("/start", StartRouter);
 export default ApiRouter;
