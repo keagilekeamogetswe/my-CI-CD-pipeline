@@ -10,7 +10,12 @@ export const AccountAuthToken = (() => {
     refresh: {
       async create(payload, mysql_connection) {
         const session_payload = {};
-        const required = ["ip_address", "device_info", "finger_print", "user_id"];
+        const required = [
+          "ip_address",
+          "device_info",
+          "finger_print",
+          "user_id",
+        ];
         // Keep only the values required to create a session.
         Object.keys(payload).forEach((key) => {
           if (required.includes(key)) {
@@ -129,26 +134,24 @@ export const AccountAuthToken = (() => {
 
     access: {
       async renew(refresh_token, mysql_connection) {
-        const { payload } = await JWTHelper.decode(refresh_token, refresh_key);
-        const session = await SessionRepository.findByJti(
-          payload.jti,
-          payload.user_id,
+        // Rotate refresh token first
+        const new_refresh_token = await AccountAuthToken.refresh.rotate(
+          refresh_token,
           mysql_connection,
         );
 
-        if (
-          !session ||
-          session.revoked_at ||
-          new Date(session.expires_at) < new Date()
-        ) {
-          throw new Error("Invalid session for access token renewal");
-        }
+        // Decode rotated refresh token to extract claims
+        const { payload } = await JWTHelper.decode(
+          new_refresh_token,
+          refresh_key,
+        );
 
+        // Issue new access token (short-lived, signed with private key)
         const access_exp = new Date(Date.now() + 3 * 60 * 1000);
-        return await JWTHelper.encode(
-          { user_id: session.user_id, fp_hash: session.fp_hash },
+        return await JWTHelper.sign(
+          { user_id: payload.user_id, fp_hash: payload.fp_hash },
           access_exp,
-          process.env.JWT_AUTH_ACCESS_TOKEN_SECRET,
+          process.env.JWT_ACCESSS_TOKEN_PRIVATE_KEY,
         );
       },
     },

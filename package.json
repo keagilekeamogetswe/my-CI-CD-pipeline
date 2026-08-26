@@ -1,32 +1,33 @@
 {
   "name": "ci-cd-testing",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "node tests/test.script.js"
-  },
-  "keywords": [],
-  "author": "",
   "license": "ISC",
   "type": "module",
-  "devDependencies": {
-    "@types/node": "^25.9.1",
-    "dotenv": "^17.4.2",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.6"
+  "scripts": {
+    "swift-webserver": "node --import=extensionless/register microservices/swift-webserver/index.js",
+    "test": "node tests/test.script.js"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.4",
     "@grpc/proto-loader": "^0.8.1",
     "amqplib": "^2.0.1",
     "argon2": "^0.44.0",
+    "cookie-parser": "^1.4.7",
     "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "express-validator": "^7.3.2",
     "extensionless": "^2.0.6",
     "jose": "^6.2.3",
     "mongodb": "^7.2.0",
+    "multer": "^2.2.0",
     "mysql2": "^3.22.4",
     "nodemailer": "^9.0.0",
     "ts-proto": "^2.11.8"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "dotenv": "^17.4.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.6"
   }
 }
