@@ -1,7 +1,10 @@
 import grpc from "@grpc/grpc-js";
+import { fileURLToPath } from "node:url";
 import protoLoader from "@grpc/proto-loader";
 import path from "node:path";
 const host = process.env.USER_GRPC_HOST ?? "user-grpc";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 export const AuthenticationGRPCClient = (() => {
   const PROTO_PATH =
     process.env.USER_PROTO_PATH ||
