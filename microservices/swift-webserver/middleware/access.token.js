@@ -6,6 +6,7 @@ const WHITELISTED_ROUTES = [
   "/api/start",
   "/api/start/verify",
   "/api/white-listed",
+  "/api/access-token",
 ];
 const PUBLIC_KEY = process.env.JWT_ACCESSS_TOKEN_PUBLIC_KEY;
 
