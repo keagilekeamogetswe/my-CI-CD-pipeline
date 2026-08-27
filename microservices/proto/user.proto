@@ -11,6 +11,18 @@ service AccountCreation {
   rpc CreateAccountRequest (ProfileData) returns (ProfileRequestResponse);
   rpc CreateAccountConfirm (VerificationConfirmationInput) returns (CreateAccountConfirmResponse);
 }
+service Authentication {
+  rpc RenewAccessToken (RenewAccessTokenReq) returns (RenewAccessTokenRes);
+}
+message RenewAccessTokenReq {
+  string refresh_token = 1;
+}
+message RenewAccessTokenRes {
+  string refresh_token = 1;
+  string access_token = 2;
+  bool success = 3;
+  string message = 4;
+}
 message VerificationConfirmationInput{
   string code = 1;
   string verification_token = 2;
