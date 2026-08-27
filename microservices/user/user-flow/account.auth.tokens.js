@@ -67,7 +67,7 @@ export const AccountAuthToken = (() => {
         }
 
         // Fetch session and check active status
-        const session = await SessionRepository.findByJti(
+        const session = await SessionRepository.find(
           jti,
           user_id,
           mysql_connection,
@@ -148,11 +148,13 @@ export const AccountAuthToken = (() => {
 
         // Issue new access token (short-lived, signed with private key)
         const access_exp = new Date(Date.now() + 3 * 60 * 1000);
-        return await JWTHelper.sign(
+        const access_token = await JWTHelper.sign(
           { user_id: payload.user_id, fp_hash: payload.fp_hash },
           access_exp,
           process.env.JWT_ACCESSS_TOKEN_PRIVATE_KEY,
         );
+
+        return { access_token, refresh_token: new_refresh_token }; // return both
       },
     },
   };
