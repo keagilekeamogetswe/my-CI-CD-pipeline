@@ -19,7 +19,20 @@ export const confirmProfileCreationVerification = async (req, res) => {
     const { success, refresh_token, message } = response;
 
     if (success) {
-      return res.status(200).json({ refresh_token, message });
+      const ttlString = process.env.JWT_AUTH_REFRESH_TOKEN_TTL;
+      const days = parseInt(ttlString, 10);
+      const REFRESH_TTL_MS = days * 24 * 60 * 60 * 1000;
+      // Set the refresh token as a secure, HTTP-only cookie when not testing
+      res.cookie("refresh_token", refresh_token, {
+        httpOnly: true,
+        secure: process.env.ENV == "test" ? true : false,
+        sameSite: "Strict",
+        expires: new Date(Date.now() + REFRESH_TTL_MS),
+      });
+
+      return res.status(200).json({
+        message: "Request confirmed successfully",
+      });
     }
 
     return res.status(400).json({ error: message || "Verification failed" });

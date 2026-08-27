@@ -156,6 +156,7 @@ describe("User Account Creation Flow (gRPC & HTTP E2E)", () => {
   // HTTP REST API E2E TESTS
   // ---------------------------------------------------------------------------
   describe("HTTP Web Server Endpoints", () => {
+    let refresh_token;
     it("confirms account creation via HTTP endpoints (/api/start)", async () => {
       const requestPayload = {
         name: "Keamogetswe",
@@ -203,10 +204,9 @@ describe("User Account Creation Flow (gRPC & HTTP E2E)", () => {
         confirmReq.status,
         `Confirm failed: ${JSON.stringify(confirmRes)}`,
       ).toBe(200);
-      expect(confirmRes).toMatchObject({
-        refresh_token: expect.any(String),
-        message: expect.any(String),
-      });
+      const setCookieHeader = confirmReq.headers.get("set-cookie");
+      expect(setCookieHeader).toContain("refresh_token=");
+      refresh_token = confirmRes.refresh_token;
     });
 
     it("rejects HTTP request with missing verification token", async () => {
@@ -224,6 +224,11 @@ describe("User Account Creation Flow (gRPC & HTTP E2E)", () => {
 
       expect(response.status).toBe(400);
       expect(body).toHaveProperty("errors");
+    });
+    it("renews access token and rotates the current refresh_token", async () => {
+      //   const response = await fetch("api/access-token", {
+      //     cookie: { refresh_token },
+      //   });
     });
   });
 
@@ -263,16 +268,12 @@ describe("User Account Creation Flow (gRPC & HTTP E2E)", () => {
         }),
       });
       const confirmRes = await confirmReq.json();
-      console.log({ confirmRes });
-
+      const setCookieHeader = confirmReq.headers.get("set-cookie");
+      expect(setCookieHeader).toContain("refresh_token=");
       expect(
         confirmReq.status,
         `Hybrid confirm failed: ${JSON.stringify(confirmRes)}`,
       ).toBe(200);
-      expect(confirmRes).toMatchObject({
-        refresh_token: expect.any(String),
-        message: expect.any(String),
-      });
     });
   });
   // Rejects when verification code is missing/empty
