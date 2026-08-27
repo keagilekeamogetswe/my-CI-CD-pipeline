@@ -1,4 +1,5 @@
 import express from "express";
+import cookieParser from "cookie-parser";
 import path from "path";
 import { fileURLToPath } from "url";
 import ApiRouter from "./routes/api.routes";
@@ -10,6 +11,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
+app.use(cookieParser());
 app.use(authMiddleware);
 
 app.use("/api", ApiRouter);

@@ -5,8 +5,9 @@ import { JWTHelper } from "../../utility/jwt";
 const WHITELISTED_ROUTES = [
   "/api/start",
   "/api/start/verify",
-  "/api/white-listed",
+  "/api/access-token",
 ];
+if (process.env.ENV == "test") WHITELISTED_ROUTES.push("/api/white-listed");
 const PUBLIC_KEY = process.env.JWT_ACCESSS_TOKEN_PUBLIC_KEY;
 
 export async function authMiddleware(req, res, next) {
