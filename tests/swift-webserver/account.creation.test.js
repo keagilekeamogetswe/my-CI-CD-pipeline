@@ -11,9 +11,7 @@ import { fork } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
-import argon2 from "argon2";
 import { Database } from "../../microservices/user/db.js";
-import { JWTHelper } from "../../microservices/utility/jwt.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = "3002";
@@ -156,7 +154,7 @@ describe("User Account Creation Flow (gRPC & HTTP E2E)", () => {
   // HTTP REST API E2E TESTS
   // ---------------------------------------------------------------------------
   describe("HTTP Web Server Endpoints", () => {
-    let refresh_token;
+    let refresh_token_cookie;
     it("confirms account creation via HTTP endpoints (/api/start)", async () => {
       const requestPayload = {
         name: "Keamogetswe",
@@ -206,7 +204,7 @@ describe("User Account Creation Flow (gRPC & HTTP E2E)", () => {
       ).toBe(200);
       const setCookieHeader = confirmReq.headers.get("set-cookie");
       expect(setCookieHeader).toContain("refresh_token=");
-      refresh_token = confirmRes.refresh_token;
+      refresh_token_cookie = setCookieHeader;
     });
 
     it("rejects HTTP request with missing verification token", async () => {
@@ -226,9 +224,17 @@ describe("User Account Creation Flow (gRPC & HTTP E2E)", () => {
       expect(body).toHaveProperty("errors");
     });
     it("renews access token and rotates the current refresh_token", async () => {
-      //   const response = await fetch("api/access-token", {
-      //     cookie: { refresh_token },
-      //   });
+      const renewReq = await fetch(`${BASE_URL}/api/access-token`, {
+        method: "GET",
+        headers: {
+          Cookie: refresh_token_cookie, // send cookie back
+        },
+      });
+
+      const data = await renewReq.json();
+      const setCookieHeader = renewReq.headers.get("set-cookie");
+      expect(setCookieHeader).toContain("refresh_token=");
+      expect(data.access_token).toBeDefined();
     });
   });
 
