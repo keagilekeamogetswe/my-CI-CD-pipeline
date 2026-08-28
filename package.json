@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "swift-webserver": "node --import=extensionless/register microservices/swift-webserver/index.js",
-    "test": "node tests/test.script.js"
+    "test": "node tests/test.script.js",
+    "frontend-test-services": "node tests/frontend/dev.service.script.js"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.4",
