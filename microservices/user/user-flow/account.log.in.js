@@ -1,7 +1,7 @@
 import { AccountAuthToken } from "./account.auth.tokens.js";
 import { CredentialsRepository } from "../credentials/repository.js";
-import { DeviceInfo } from "../../utility/device.infor.js";
 import { LoginErrorRepository } from "../config/login.errors.js";
+import { normalizeDeviceContext } from "../../utility/device.context.js";
 
 export async function Login(user_id, password, device_info, mysql_connection) {
   if (typeof device_info !== "string") {
@@ -21,12 +21,9 @@ export async function Login(user_id, password, device_info, mysql_connection) {
     throw new Error(LoginErrorRepository.INVALID_CREDENTIALS);
   }
 
-  // Build device info object
-  const device_info_instance = DeviceInfo.fromString(device_info);
-
   const payload = {
     user_id,
-    ...device_info_instance.toSessionPayload(),
+    ...normalizeDeviceContext(device_info),
   };
 
   // Create a session (refresh token)

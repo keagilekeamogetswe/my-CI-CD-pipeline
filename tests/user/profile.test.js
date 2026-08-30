@@ -7,10 +7,11 @@
 // +----+------+----------+------------+------+-----------------+---------+----------+
 // 1 row in set (0.04 sec)
 
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { Database } from "../../microservices/user/db";
 import { CredentialsRepository } from "../../microservices/user/credentials/repository";
 import { ProfileRepository } from "../../microservices/user/profile/repository";
+import profileDefaults from "../../microservices/user/config/profile.defaults.js";
 
 describe("ProfileRepository", () => {
   let mysql_connection;
@@ -130,6 +131,69 @@ describe("ProfileRepository", () => {
       )
     ).rejects.toThrow(
       "Field 'phone_id' is not allowed for update"
+    );
+  });
+
+  it("stores only modified setting deltas in MongoDB", async () => {
+    const mongo_connection = {
+      updateOne: vi.fn().mockResolvedValue({ acknowledged: true }),
+    };
+
+    await ProfileRepository.patchConfig(
+      user_id,
+      {
+        privacy: {
+          lastseen: "nobody",
+          about: profileDefaults.privacy.about,
+        },
+        notifications: {
+          push: false,
+        },
+      },
+      mongo_connection,
+    );
+
+    expect(mongo_connection.updateOne).toHaveBeenCalledWith(
+      { user_id },
+      {
+        $setOnInsert: { user_id },
+        $set: {
+          "settings.privacy.lastseen": "nobody",
+          "settings.notifications.push": false,
+        },
+        $unset: {
+          "settings.privacy.about": "",
+        },
+      },
+      { upsert: true },
+    );
+  });
+
+  it("merges global defaults with user settings deltas", async () => {
+    const mongo_connection = {
+      findOne: vi.fn().mockResolvedValue({
+        user_id,
+        settings: {
+          privacy: {
+            lastseen: "nobody",
+          },
+          notifications: {
+            push: false,
+          },
+        },
+      }),
+    };
+
+    const merged = await ProfileRepository.getMergedConfig(
+      user_id,
+      mongo_connection,
+    );
+
+    expect(merged.privacy.lastseen).toBe("nobody");
+    expect(merged.privacy.about).toBe(profileDefaults.privacy.about);
+    expect(merged.notifications.push).toBe(false);
+    expect(merged.recovery.backup.storage_limit_mb).toBe(
+      profileDefaults.recovery.backup.storage_limit_mb,
     );
   });
 });

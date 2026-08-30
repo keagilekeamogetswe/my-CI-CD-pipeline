@@ -118,6 +118,7 @@ describe("UserRecoverAccountGRPCClient", () => {
     ).resolves.toMatchObject({
       success: true,
       refresh_token: expect.any(String),
+      access_token: expect.any(String),
     });
   });
 

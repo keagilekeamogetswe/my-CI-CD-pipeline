@@ -1,19 +1,45 @@
 "use client";
 import Link from "next/link";
-import { FormEvent } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 interface ProfileStartProps {
-  phoneNumber?: string;
+  phoneNumber: string;
   onEdit?: () => void;
+  initialData?: {
+    firstName: string;
+    lastName: string;
+    dob: string;
+  };
+  loading?: boolean;
+  error?: string;
+  onSubmit?: (payload: {
+    firstName: string;
+    lastName: string;
+    dob: string;
+  }) => Promise<void> | void;
 }
 
 export default function ProfileStart({
-  phoneNumber = "",
+  phoneNumber,
   onEdit,
+  initialData,
+  loading = false,
+  error = "",
+  onSubmit,
 }: ProfileStartProps) {
+  const [firstName, setFirstName] = useState(initialData?.firstName ?? "");
+  const [lastName, setLastName] = useState(initialData?.lastName ?? "");
+  const [dob, setDob] = useState(initialData?.dob ?? "");
+
+  useEffect(() => {
+    setFirstName(initialData?.firstName ?? "");
+    setLastName(initialData?.lastName ?? "");
+    setDob(initialData?.dob ?? "");
+  }, [initialData]);
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    // Proceed with registration flow
+    void onSubmit?.({ firstName, lastName, dob });
   };
 
   return (
@@ -63,6 +89,8 @@ export default function ProfileStart({
               type="text"
               id="firstName"
               name="firstName"
+              value={firstName}
+              onChange={(event) => setFirstName(event.target.value)}
               className="peer block px-3.5 pb-2 pt-5 w-full text-sm bg-transparent border-0 appearance-none focus:outline-none focus:ring-0"
               placeholder=" "
               autoComplete="given-name"
@@ -81,6 +109,8 @@ export default function ProfileStart({
               type="text"
               id="lastName"
               name="lastName"
+              value={lastName}
+              onChange={(event) => setLastName(event.target.value)}
               className="peer block px-3.5 pb-2 pt-5 w-full text-sm bg-transparent border-0 appearance-none focus:outline-none focus:ring-0"
               placeholder=" "
               autoComplete="family-name"
@@ -101,6 +131,8 @@ export default function ProfileStart({
             type="date"
             id="dob"
             name="dob"
+            value={dob}
+            onChange={(event) => setDob(event.target.value)}
             className="peer block px-3.5 pb-2 pt-5 w-full text-sm bg-transparent border-0 appearance-none focus:outline-none focus:ring-0"
             placeholder=" "
             required
@@ -115,10 +147,12 @@ export default function ProfileStart({
 
         <button
           type="submit"
+          disabled={loading}
           className="w-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-3 rounded-lg transition-colors cursor-pointer mt-2"
         >
-          Complete Registration
+          {loading ? "Sending Code..." : "Continue to Verification"}
         </button>
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
       </form>
 
       <div className="flex items-center my-6">

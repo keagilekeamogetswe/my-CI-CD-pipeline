@@ -155,6 +155,7 @@ describe("User Account Creation Flow (gRPC & HTTP E2E)", () => {
   // ---------------------------------------------------------------------------
   describe("HTTP Web Server Endpoints", () => {
     let refresh_token_cookie;
+    let issued_access_token;
     it("confirms account creation via HTTP endpoints (/api/start)", async () => {
       const requestPayload = {
         name: "Keamogetswe",
@@ -202,6 +203,8 @@ describe("User Account Creation Flow (gRPC & HTTP E2E)", () => {
         confirmReq.status,
         `Confirm failed: ${JSON.stringify(confirmRes)}`,
       ).toBe(200);
+      expect(confirmRes.access_token).toEqual(expect.any(String));
+      issued_access_token = confirmRes.access_token;
       const setCookieHeader = confirmReq.headers.get("set-cookie");
       expect(setCookieHeader).toContain("refresh_token=");
       refresh_token_cookie = setCookieHeader;
@@ -235,6 +238,35 @@ describe("User Account Creation Flow (gRPC & HTTP E2E)", () => {
       const setCookieHeader = renewReq.headers.get("set-cookie");
       expect(setCookieHeader).toContain("refresh_token=");
       expect(data.access_token).toBeDefined();
+      issued_access_token = data.access_token;
+    });
+    it("allows a protected request with matching device headers", async () => {
+      const response = await fetch(`${BASE_URL}/api/protected`, {
+        headers: {
+          Authorization: "Bearer " + issued_access_token,
+          "x-device-name": "Vitest-HTTP",
+          "x-webgl-fingerprint": "http-test-hash",
+        },
+      });
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body).toMatchObject({
+        message: "made it to the protected route.",
+      });
+    });
+    it("rejects a protected request when fingerprint headers mismatch", async () => {
+      const response = await fetch(`${BASE_URL}/api/protected`, {
+        headers: {
+          Authorization: "Bearer " + issued_access_token,
+          "x-device-name": "Unexpected Device",
+          "x-webgl-fingerprint": "http-test-hash",
+        },
+      });
+      const body = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(body.error).toBe("Re-authentication required");
     });
   });
 

@@ -11,10 +11,14 @@ const checkSessionFields = (session_config) => {
     "token_hash",
     "fp_hash",
   ];
-  // Validate that all required fields are present in session_config
   Object.keys(session_config).forEach((key) => {
     if (!required_fields.includes(key)) {
       throw new Error(`Field not required: ${key}`);
+    }
+  });
+  required_fields.forEach((field) => {
+    if (session_config[field] == null || session_config[field] === "") {
+      throw new Error(`Missing required field: ${field}`);
     }
   });
   return true;
@@ -44,7 +48,7 @@ export const SessionRepository = (() => {
       }
     },
     async find(jti, user_id, mysql_connection) {
-      const query = "SELECT * FROM user_session WHERE jti = ? AND user_id;";
+      const query = "SELECT * FROM user_session WHERE jti = ? AND user_id = ?";
       const [result] = await mysql_connection.execute(query, [jti, user_id]);
       return result[0];
     },

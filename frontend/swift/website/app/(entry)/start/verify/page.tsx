@@ -14,18 +14,26 @@ import {
 interface VerifyPageProps {
   phoneNumber?: string;
   onBack?: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (code: string) => Promise<void> | void;
+  loading?: boolean;
+  errorMessage?: string;
 }
 
 export default function VerifyPage({
   phoneNumber = "+1 (555) 000-0000",
   onBack,
   onSuccess,
+  loading = false,
+  errorMessage = "",
 }: VerifyPageProps) {
   const [code, setCode] = useState<string[]>(Array(6).fill(""));
   const [timeLeft, setTimeLeft] = useState<number>(120); // 2 minutes = 120 seconds
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState<string>(errorMessage);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    setError(errorMessage);
+  }, [errorMessage]);
 
   // 2-Minute Countdown Timer
   useEffect(() => {
@@ -121,7 +129,7 @@ export default function VerifyPage({
 
     setError("");
     if (onSuccess) {
-      onSuccess();
+      void onSuccess(fullCode);
     }
   };
 
@@ -202,9 +210,10 @@ export default function VerifyPage({
         <div className="space-y-2.5 pt-2">
           <button
             type="submit"
+            disabled={loading}
             className="w-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-3 rounded-lg transition-colors cursor-pointer"
           >
-            Confirm Code
+            {loading ? "Confirming..." : "Confirm Code"}
           </button>
 
           {onBack ? (

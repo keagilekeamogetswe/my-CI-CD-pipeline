@@ -1,0 +1,52 @@
+import express from "express";
+import { body, validationResult } from "express-validator";
+import { UserRecoverAccountGRPCClient } from "../../../grpc-clients/user/user.log.js";
+
+const RecoveryRouter = express.Router();
+
+const RecoveryValidator = [
+  body("user_id").trim().notEmpty().withMessage("user_id is required"),
+  body("password").isString().notEmpty().withMessage("password is required"),
+  body("device_info")
+    .isString()
+    .notEmpty()
+    .withMessage("device_info is required"),
+];
+
+RecoveryRouter.post("/", RecoveryValidator, async (req, res) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const response = await UserRecoverAccountGRPCClient.RecoverAccount({
+      userId: req.body.user_id,
+      password: req.body.password,
+      deviceInfo: req.body.device_info,
+    });
+    const { refresh_token, success, ...responseBody } = response;
+
+    if (!success) {
+      return res.status(400).json(responseBody);
+    }
+
+    const ttlString = process.env.JWT_AUTH_REFRESH_TOKEN_TTL || "30";
+    const days = parseInt(ttlString, 10);
+    const REFRESH_TTL_MS = days * 24 * 60 * 60 * 1000;
+
+    res.cookie("refresh_token", refresh_token, {
+      httpOnly: true,
+      secure: process.env.ENV !== "test",
+      sameSite: "Strict",
+      expires: new Date(Date.now() + REFRESH_TTL_MS),
+    });
+
+    return res.status(200).json(responseBody);
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+export default RecoveryRouter;
