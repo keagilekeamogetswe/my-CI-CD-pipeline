@@ -3,6 +3,7 @@
 
 # Whitelist root package.json
 !/package.json
+!/PR.md
 
 # Allow git to track all *-webserver
 !/microservices/*-webserver

@@ -144,6 +144,7 @@ describe("Account lifecycle gRPC tests", () => {
     expect(res).toMatchObject({
       success: true,
       refresh_token: expect.any(String),
+      access_token: expect.any(String),
       message: "Account created successfully",
     });
 

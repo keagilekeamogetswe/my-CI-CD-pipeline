@@ -1,7 +1,17 @@
 "use client";
 import Link from "next/link";
-import { useState, ChangeEvent, FormEvent } from "react";
+import { useEffect, useState, ChangeEvent, FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import ProfileStart from "./profile.data";
+import VerifyPage from "./verify/page";
+import ProfileCustomization from "./profile.customization";
+import SwiftRecovery, { SwiftRecoveryPayload } from "./swift.recovery";
+import RecoveryPage from "../recovery/page";
+import {
+  buildDeviceHeaders,
+  collectDeviceContext,
+  DeviceContext,
+} from "../../lib/device-context";
 
 const COUNTRY_DATA = [
   { name: "United States", code: "+1", flag: "🇺🇸" },
@@ -14,11 +24,39 @@ const COUNTRY_DATA = [
 ];
 
 export default function StartPage() {
+  const router = useRouter();
   const [selectedCountry, setSelectedCountry] = useState(COUNTRY_DATA[0].name);
   const [dialCode, setDialCode] = useState(COUNTRY_DATA[0].code);
   const [phone_body, setPhoneBody] = useState<string>("");
   const [error, setError] = useState<string>("");
-  const [next, setNext] = useState<boolean>(false);
+  const [currentStep, setCurrentStep] = useState<
+    "phone" | "profile" | "verify" | "customize" | "recovery" | "recover"
+  >("phone");
+  const [loading, setLoading] = useState(false);
+  const [deviceContext, setDeviceContext] = useState<DeviceContext | null>(null);
+  const [verificationToken, setVerificationToken] = useState("");
+  const [profileData, setProfileData] = useState({
+    firstName: "",
+    lastName: "",
+    dob: "",
+  });
+  const [customization, setCustomization] = useState({
+    bio: "",
+    profilePictureUrl: "",
+  });
+  const [swiftRecovery, setSwiftRecovery] = useState<SwiftRecoveryPayload>({
+    optedIn: false,
+    recoveryMethod: "email",
+    recoveryValue: "",
+    backupUsedMb: 0,
+    plan: "free",
+    allowSyncedAuth: false,
+    syncedPhoneNumber: "",
+  });
+
+  useEffect(() => {
+    void collectDeviceContext().then(setDeviceContext);
+  }, []);
 
   const handleCountryChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const countryName = e.target.value;
@@ -36,10 +74,174 @@ export default function StartPage() {
     }
 
     setError("");
-    setNext(true);
+    setCurrentStep("profile");
   };
 
-  return !next ? (
+  const handleProfileSubmit = async (payload: {
+    firstName: string;
+    lastName: string;
+    dob: string;
+  }) => {
+    if (!deviceContext) {
+      setError("Preparing secure device context. Please try again.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setProfileData(payload);
+
+    try {
+      const response = await fetch("/api/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...buildDeviceHeaders(deviceContext),
+        },
+        body: JSON.stringify({
+          name: payload.firstName,
+          lastname: payload.lastName,
+          dob: payload.dob,
+          phone: {
+            code: dialCode,
+            body: phone_body.replace(/\D/g, ""),
+            dial_code_id: 27,
+          },
+          device_info: deviceContext.deviceInfo,
+          fp_hash: deviceContext.webglFingerprint,
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Unable to start account verification.");
+      }
+
+      setVerificationToken(result.verification_token);
+      setCurrentStep("verify");
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to start account verification.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerificationSuccess = async (code: string) => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/start/verify", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          verification_token: verificationToken,
+          code,
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Verification failed.");
+      }
+
+      setCurrentStep("customize");
+    } catch (verifyError) {
+      setError(
+        verifyError instanceof Error ? verifyError.message : "Verification failed.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const finishOnboarding = async (payload: SwiftRecoveryPayload) => {
+    setLoading(true);
+    setSwiftRecovery(payload);
+    const retentionLabel = payload.optedIn
+      ? "Swift Recovery active with linked backup credentials."
+      : "Passwordless session retained for 45 days unless your number is claimed, then 7 days.";
+
+    window.localStorage.setItem(
+      "swift-session",
+      JSON.stringify({
+        phoneNumber: `${dialCode} ${phone_body}`,
+        profile: profileData,
+        customization,
+        recovery: {
+          optedIn: payload.optedIn,
+          recoveryMethod: payload.recoveryMethod,
+          allowSyncedAuth: payload.allowSyncedAuth,
+          hasSyncedPhoneNumber: Boolean(payload.syncedPhoneNumber),
+          hasRecoveryValue: Boolean(payload.recoveryValue),
+        },
+        retentionLabel,
+        onboardingCompletedAt: new Date().toISOString(),
+      }),
+    );
+    router.push("/messages");
+  };
+
+  if (currentStep === "profile") {
+    return (
+      <ProfileStart
+        phoneNumber={`${dialCode} ${phone_body}`}
+        initialData={profileData}
+        onEdit={() => setCurrentStep("phone")}
+        onSubmit={handleProfileSubmit}
+        loading={loading}
+        error={error}
+      />
+    );
+  }
+
+  if (currentStep === "verify") {
+    return (
+      <VerifyPage
+        phoneNumber={`${dialCode} ${phone_body}`}
+        onBack={() => setCurrentStep("phone")}
+        onSuccess={handleVerificationSuccess}
+        loading={loading}
+        errorMessage={error}
+      />
+    );
+  }
+
+  if (currentStep === "customize") {
+    return (
+      <ProfileCustomization
+        initialData={customization}
+        loading={loading}
+        onSkip={() => setCurrentStep("recovery")}
+        onSubmit={(payload) => {
+          setCustomization(payload);
+          setCurrentStep("recovery");
+        }}
+      />
+    );
+  }
+
+  if (currentStep === "recovery") {
+    return (
+      <SwiftRecovery
+        initialData={swiftRecovery}
+        loading={loading}
+        onBack={() => setCurrentStep("customize")}
+        onSubmit={finishOnboarding}
+      />
+    );
+  }
+
+  if (currentStep === "recover") {
+    return <RecoveryPage onBack={() => setCurrentStep("phone")} />;
+  }
+
+  return (
     <div className="p-8 md:p-10 border border-gray-200 bg-white shadow-sm rounded-2xl max-w-md mx-auto text-gray-900">
       <div className="mb-6">
         <h1 className="text-xl font-semibold tracking-tight mb-1.5">
@@ -156,19 +358,18 @@ export default function StartPage() {
           >
             Next
           </button>
-          <Link
-            href="/account/recovery"
-            className="block w-full text-center border border-gray-300 hover:bg-gray-50 text-gray-800 font-medium text-sm py-2.5 rounded-lg transition-colors"
-          >
-            Recover Profile
-          </Link>
-        </div>
-      </form>
-    </div>
-  ) : (
-    <ProfileStart
-      phoneNumber={`${dialCode} =${phone_body}`}
-      onEdit={() => setNext(false)}
-    />
+         <Link
+           href="#"
+           onClick={(event) => {
+             event.preventDefault();
+             setCurrentStep("recover");
+           }}
+           className="block w-full text-center border border-gray-300 hover:bg-gray-50 text-gray-800 font-medium text-sm py-2.5 rounded-lg transition-colors"
+         >
+           Recover Profile
+         </Link>
+       </div>
+     </form>
+   </div>
   );
 }

@@ -1,6 +1,4 @@
 import { AccountAuthToken } from "../../user-flow/account.auth.tokens.js";
-import { CredentialsRepository } from "../../credentials/repository.js";
-import { DeviceInfo } from "../../../utility/device.infor.js";
 import { Database } from "../../db.js";
 import { Login } from "../../user-flow/account.log.in.js";
 import { LoginErrorRepository } from "../../config/login.errors.js";
@@ -22,9 +20,12 @@ export async function RecoverAccountHandler(call, callback) {
       device_info,
       connection,
     );
+    const accessToken =
+      await AccountAuthToken.access.issueFromRefreshToken(refreshToken);
     await connection.commit();
     callback(null, {
       refresh_token: refreshToken,
+      access_token: accessToken,
       message: "Login was successful",
       success: true,
     });

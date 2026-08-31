@@ -41,6 +41,10 @@ export const JWTHelper = (() => {
 
       const { payload, protectedHeader } = await jose.jwtDecrypt(jweToken, key);
       return { payload, protectedHeader };
+    },
+
+    verifyEncrypted: async (jweToken, secretKey) => {
+      return await JWTHelper.decode(jweToken, secretKey);
     }
   };
 })();

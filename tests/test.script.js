@@ -9,8 +9,10 @@ const IGNORED_DIRS = new Set([
   "microservices",
 ]);
 
+const failedTests = [];
+
 async function runTest(file) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const child = spawn(
       "npx",
       ["vitest", "run", file],
@@ -21,8 +23,10 @@ async function runTest(file) {
     );
 
     child.on("exit", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`${file} failed`));
+      if (code !== 0) {
+        failedTests.push(file);
+      }
+      resolve();
     });
   });
 }
@@ -62,3 +66,14 @@ async function walk(dir) {
 }
 
 await walk("tests");
+
+if (failedTests.length > 0) {
+  console.error("\n========== FAILED TESTS ==========");
+  for (const file of failedTests) {
+    console.error(`  ✗ ${file}`);
+  }
+  console.error(`\n${failedTests.length} test file(s) failed.`);
+  process.exit(1);
+} else {
+  console.log("\nAll tests passed.");
+}

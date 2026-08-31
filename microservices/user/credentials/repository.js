@@ -1,5 +1,33 @@
 import argon2 from "argon2"
 export const CredentialsRepository = (()=>{
+  const resolveDialCodeId = async (phone, mysql_connection) => {
+    const normalizedDialCode = String(phone.code || "").replace(/^\+/, "");
+
+    if (phone.dial_code_id) {
+      const [existing] = await mysql_connection.execute(
+        "SELECT id, dial_code FROM dial_codes WHERE id = ? LIMIT 1",
+        [phone.dial_code_id],
+      );
+
+      if (
+        existing.length > 0 &&
+        (!normalizedDialCode || String(existing[0].dial_code) === normalizedDialCode)
+      ) {
+        return phone.dial_code_id;
+      }
+    }
+
+    const [rows] = await mysql_connection.execute(
+      "SELECT id FROM dial_codes WHERE dial_code = ? LIMIT 1",
+      [normalizedDialCode],
+    );
+
+    if (rows.length === 0) {
+      throw new Error("Dial code does not exist");
+    }
+
+    return rows[0].id;
+  };
 
   return {
     create: async(password_hash, mysql_connection)=>{
@@ -10,7 +38,8 @@ export const CredentialsRepository = (()=>{
       return user_id;
     },
     linkPhone: async(user_id, phone, mysql_connection)=>{
-      const { dial_code_id, body } = phone;
+      const { body } = phone;
+      const dial_code_id = await resolveDialCodeId(phone, mysql_connection);
 
       // Insert phone number (dial_code_id must exist in dial_codes)
       const [phone_result] = await mysql_connection.execute(

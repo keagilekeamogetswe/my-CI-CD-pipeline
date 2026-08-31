@@ -72,7 +72,7 @@ describe("User Creation flow tests",()=>{
       device_info: "Some device brand probably with model"
      }
     const token =  await AccountCreation.request("John", "Emori", "2003-09-20", phone, device_auto_detected_info);
-    const refresh_token = await AccountCreation.confirm(token, "123456789", mysql_connection)
+    const { refresh_token, access_token } = await AccountCreation.confirm(token, "123456789", mysql_connection)
     const refresh_payload = await JWTHelper.decode(refresh_token, process.env.JWT_AUTH_REFRESH_TOKEN_SECRET)
     console.log(refresh_payload)
     await new Promise(resolve=>setTimeout(resolve, 300))
@@ -80,6 +80,7 @@ describe("User Creation flow tests",()=>{
 
     expect(session_result.ip_address).toBe(refresh_payload.payload.ip_address)
     expect(session_result.jti).toBe(refresh_payload.payload.jti)
+    expect(access_token).toEqual(expect.any(String))
 
 
   })

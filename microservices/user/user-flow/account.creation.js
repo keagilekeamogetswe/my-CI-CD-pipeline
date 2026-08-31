@@ -1,14 +1,9 @@
-import argon2 from "argon2";
-
 import { CredentialsRepository } from "../credentials/repository";
 import { ProfileRepository } from "../profile/repository";
 
 import Verification from "../verification/control";
 import { Database } from "../db";
-import { SessionRepository } from "../session/repository";
-import { JWTHelper } from "../../utility/jwt";
-import { DeamonClient } from "../../grpc-clients/deamon";
-import { randomUUID } from "crypto";
+import { AccountAuthToken } from "./account.auth.tokens.js";
 
 export const AccountCreation = (() => {
   return {
@@ -93,86 +88,27 @@ export const AccountCreation = (() => {
         mysql_connection,
       );
 
-      /*
-       * Only copy information that belongs in a login session.
-       *
-       * The original verification payload may contain profile,
-       * phone, and verification-specific fields that should never
-       * become part of the refresh-token/session data.
-       */
-      const session_payload = {};
-
-      Object.keys(payload).forEach((key) => {
-        const required = ["ip_address", "device_info", "fp_hash", "user_id"];
-
-        if (required.includes(key)) {
-          session_payload[key] = payload[key];
-        }
-      });
-
-      /*
-       * Generate a unique identifier for this refresh-token session.
-       *
-       * This JTI is shared between the JWT and the database session,
-       * allowing the refresh token to be individually revoked or
-       * looked up later.
-       */
-      const jti = randomUUID();
-      session_payload.jti = jti;
-
-      /*
-       * Keep JavaScript Date objects for database persistence.
-       *
-       * JWTHelper.encode() is responsible for converting the expiration
-       * into the NumericDate representation required by the JWT.
-       */
-      const now = new Date();
-      const iat = now;
-
-      // Refresh tokens remain valid for 30 days.
-      const exp = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-      /*
-       * Create the refresh token using the session information.
-       *
-       * The token contains the session identity (jti), user identity,
-       * and device information needed when the refresh token is later
-       * presented.
-       */
-      const refresh_token = await JWTHelper.encode(
-        session_payload,
-        exp,
-        process.env.JWT_AUTH_REFRESH_TOKEN_SECRET,
+      const refresh_token = await AccountAuthToken.refresh.create(
+        {
+          user_id,
+          device_info: payload.device_info,
+          device_name: payload.device_name,
+          user_agent: payload.user_agent,
+          webgl_fingerprint: payload.webgl_fingerprint,
+          device_id_hash: payload.device_id_hash,
+          ip_address: payload.ip_address,
+          finger_print: payload.fp_hash,
+          fp_hash: payload.fp_hash,
+        },
+        mysql_connection,
       );
+      const access_token =
+        await AccountAuthToken.access.issueFromRefreshToken(refresh_token);
 
-      /*
-       * Never store the raw refresh token in the database.
-       *
-       * If the database is compromised, storing the raw token would
-       * allow an attacker to use existing sessions. Argon2 produces
-       * a one-way hash that can later be verified against the token.
-       */
-      const token_hash = await argon2.hash(refresh_token);
-
-      /*
-       * Add database-specific session fields.
-       *
-       * session_payload now contains both the JWT/session claims and
-       * the fields required by the user_session table.
-       */
-      session_payload.created_at = iat;
-      session_payload.expires_at = exp;
-      session_payload.token_hash = token_hash;
-
-      /*
-       * Persist the refresh-token session before returning the token.
-       *
-       * Awaiting this operation ensures the session exists in the
-       * database before the caller receives a usable refresh token.
-       */
-      await SessionRepository.save(session_payload, mysql_connection);
-
-      return refresh_token;
+      return {
+        refresh_token,
+        access_token,
+      };
     },
   };
 })();

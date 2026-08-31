@@ -2,44 +2,56 @@ import { randomUUID } from "node:crypto";
 import { JWTHelper } from "../../utility/jwt";
 import argon2 from "argon2";
 import { SessionRepository } from "../session/repository";
+import {
+  claimsFromDeviceContext,
+  normalizeDeviceContext,
+} from "../../utility/device.context.js";
 
 export const AccountAuthToken = (() => {
   const refresh_key = process.env.JWT_AUTH_REFRESH_TOKEN_SECRET;
+  const access_key =
+    process.env.JWT_ACCESS_TOKEN_SECRET ||
+    process.env.JWT_ACCESS_TOKEN_PUBLIC_KEY ||
+    process.env.JWT_ACCESSS_TOKEN_PUBLIC_KEY;
 
   return {
     refresh: {
       async create(payload, mysql_connection) {
-        const session_payload = {};
-        const required = [
-          "ip_address",
-          "device_info",
-          "finger_print",
-          "user_id",
-        ];
-        // Keep only the values required to create a session.
-        Object.keys(payload).forEach((key) => {
-          if (required.includes(key)) {
-            session_payload[key] = payload[key];
-          }
-        });
-        required.forEach((key) => {
-          if (session_payload[key] == null || session_payload[key] === "") {
+        const deviceContext = normalizeDeviceContext(payload.device_info, payload);
+        const finger_print =
+          deviceContext.webgl_fingerprint || payload.finger_print || payload.fp_hash;
+        const required = {
+          ip_address: deviceContext.ip_address,
+          device_info: deviceContext.device_info,
+          finger_print,
+          user_id: payload.user_id,
+        };
+
+        Object.entries(required).forEach(([key, value]) => {
+          if (value == null || value === "") {
             throw new Error(`Required field missing: ${key}`);
           }
         });
 
-        const fp_hash = await argon2.hash(session_payload.finger_print);
-        delete session_payload.finger_print;
-        session_payload.fp_hash = fp_hash;
-
+        const session_payload = {
+          user_id: payload.user_id,
+          device_info: deviceContext.device_info,
+          ip_address: deviceContext.ip_address,
+          fp_hash: await argon2.hash(finger_print),
+        };
         const jti = randomUUID();
         session_payload.jti = jti;
 
         const now = new Date();
         const exp = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
+        const refresh_claims = {
+          user_id: payload.user_id,
+          jti,
+          ...claimsFromDeviceContext(deviceContext),
+        };
         const refresh_token = await JWTHelper.encode(
-          session_payload,
+          refresh_claims,
           exp,
           refresh_key,
         );
@@ -96,12 +108,13 @@ export const AccountAuthToken = (() => {
         const now = new Date();
         const new_exp = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
+        const deviceContext = normalizeDeviceContext(session.device_info, {
+          ip_address: session.ip_address,
+        });
         const new_session_payload = {
           user_id: session.user_id,
-          device_info: session.device_info,
-          ip_address: session.ip_address,
-          fp_hash: session.fp_hash,
           jti: new_jti,
+          ...claimsFromDeviceContext(deviceContext),
         };
 
         const new_refresh_token = await JWTHelper.encode(
@@ -133,6 +146,24 @@ export const AccountAuthToken = (() => {
     },
 
     access: {
+      async issueFromClaims(claims) {
+        const access_exp = new Date(Date.now() + 3 * 60 * 1000);
+
+        return await JWTHelper.encode(
+          {
+            user_id: claims.user_id,
+            session_jti: claims.jti ?? claims.session_jti,
+            ...claimsFromDeviceContext(claims),
+          },
+          access_exp,
+          access_key,
+        );
+      },
+      async issueFromRefreshToken(refresh_token) {
+        const { payload } = await JWTHelper.decode(refresh_token, refresh_key);
+
+        return await AccountAuthToken.access.issueFromClaims(payload);
+      },
       async renew(refresh_token, mysql_connection) {
         // Rotate refresh token first
         const new_refresh_token = await AccountAuthToken.refresh.rotate(
@@ -141,18 +172,8 @@ export const AccountAuthToken = (() => {
         );
 
         // Decode rotated refresh token to extract claims
-        const { payload } = await JWTHelper.decode(
-          new_refresh_token,
-          refresh_key,
-        );
-
-        // Issue new access token (short-lived, signed with private key)
-        const access_exp = new Date(Date.now() + 3 * 60 * 1000);
-        const access_token = await JWTHelper.sign(
-          { user_id: payload.user_id, fp_hash: payload.fp_hash },
-          access_exp,
-          process.env.JWT_ACCESSS_TOKEN_PRIVATE_KEY,
-        );
+        const access_token =
+          await AccountAuthToken.access.issueFromRefreshToken(new_refresh_token);
 
         return { access_token, refresh_token: new_refresh_token }; // return both
       },

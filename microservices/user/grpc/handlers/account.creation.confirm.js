@@ -11,7 +11,7 @@ export async function CreateAccountConfirmHandler(call, callback) {
     transactionStarted = true;
 
     const { verification_token, code } = call.request;
-    const refreshToken = await AccountCreation.confirm(
+    const { refresh_token, access_token } = await AccountCreation.confirm(
       verification_token,
       code,
       connection,
@@ -19,7 +19,8 @@ export async function CreateAccountConfirmHandler(call, callback) {
 
     await connection.commit();
     callback(null, {
-      refresh_token: refreshToken,
+      refresh_token,
+      access_token,
       success: true,
       message: "Account created successfully",
     });

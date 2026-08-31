@@ -11,10 +11,14 @@ const checkSessionFields = (session_config) => {
     "token_hash",
     "fp_hash",
   ];
-  // Validate that all required fields are present in session_config
   Object.keys(session_config).forEach((key) => {
     if (!required_fields.includes(key)) {
       throw new Error(`Field not required: ${key}`);
+    }
+  });
+  required_fields.forEach((field) => {
+    if (session_config[field] == null || session_config[field] === "") {
+      throw new Error(`Missing required field: ${field}`);
     }
   });
   return true;
@@ -22,6 +26,15 @@ const checkSessionFields = (session_config) => {
 export const SessionRepository = (() => {
   return {
     save: async (session_config, mysql_connection) => {
+      const fallbackDates = global.db_params || {};
+
+      if (!session_config.created_at) {
+        session_config.created_at = fallbackDates.iat || new Date();
+      }
+      if (!session_config.expires_at) {
+        session_config.expires_at = fallbackDates.exp || new Date();
+      }
+
       checkSessionFields(session_config);
 
       // build the query dynamically based on the session_config object
@@ -44,7 +57,7 @@ export const SessionRepository = (() => {
       }
     },
     async find(jti, user_id, mysql_connection) {
-      const query = "SELECT * FROM user_session WHERE jti = ? AND user_id;";
+      const query = "SELECT * FROM user_session WHERE jti = ? AND user_id = ?";
       const [result] = await mysql_connection.execute(query, [jti, user_id]);
       return result[0];
     },

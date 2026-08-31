@@ -2,21 +2,12 @@ import { fork, execSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
-import { generateKeyPairSync } from "crypto";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = "3002";
 const GRPC_PORT = "50051";
 
-// Auto add .env for tests
-const { publicKey, privateKey } = generateKeyPairSync("rsa", {
-  modulusLength: 2048,
-  publicKeyEncoding: { type: "spki", format: "pem" },
-  privateKeyEncoding: { type: "pkcs8", format: "pem" },
-});
-
-process.env.JWT_ACCESSS_TOKEN_PUBLIC_KEY = publicKey;
-process.env.JWT_ACCESSS_TOKEN_PRIVATE_KEY = privateKey;
+process.env.JWT_ACCESS_TOKEN_SECRET = "frontend-test-access-token-secret";
 
 dotenv.config({ path: "./../../tests/.env" });
 
