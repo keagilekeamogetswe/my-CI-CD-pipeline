@@ -67,8 +67,9 @@ function authRateLimiter(req, res, next) {
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
-app.use(authRateLimiter);
-app.use(authMiddleware);
+app.use((req, res, next) =>
+  authRateLimiter(req, res, () => authMiddleware(req, res, next)),
+);
 
 app.use("/api", ApiRouter);
 
