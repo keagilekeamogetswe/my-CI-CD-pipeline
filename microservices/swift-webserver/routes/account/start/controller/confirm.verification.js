@@ -17,6 +17,7 @@ export const confirmProfileCreationVerification = async (req, res) => {
     });
 
     const { success, refresh_token, ...responseBody } = response;
+    const clientResponse = { success, ...responseBody };
 
     if (success) {
       const ttlString = process.env.JWT_AUTH_REFRESH_TOKEN_TTL || "30";
@@ -29,10 +30,10 @@ export const confirmProfileCreationVerification = async (req, res) => {
         expires: new Date(Date.now() + REFRESH_TTL_MS),
       });
 
-      return res.status(200).json(responseBody);
+      return res.status(200).json(clientResponse);
     }
 
-    return res.status(400).json(responseBody);
+    return res.status(400).json(clientResponse);
   } catch (error) {
     console.error("gRPC Error:", error);
     return res

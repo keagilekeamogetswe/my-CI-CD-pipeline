@@ -52,11 +52,13 @@ describe("User login flow tests", () => {
       "SELECT * FROM user_session WHERE jti = ?",
       [token_payload.jti],
     );
+    const parsedDeviceInfo = JSON.parse(session.device_info);
 
     expect(session).toBeDefined();
     expect(session.user_id).toBe(user_id);
     expect(session.jti).toBe(token_payload.jti);
-    expect(session.device_info).toBe(device.device_name);
+    expect(parsedDeviceInfo.device_name).toBe(device.device_name);
+    expect(parsedDeviceInfo.webgl_fingerprint).toBe(device.finger_print);
     expect(session.ip_address).toBe(device.ip_address);
     expect(session.revoked_at).toBeNull();
     expect(await argon2.verify(session.fp_hash, device.finger_print)).toBe(true);

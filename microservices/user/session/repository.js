@@ -26,6 +26,15 @@ const checkSessionFields = (session_config) => {
 export const SessionRepository = (() => {
   return {
     save: async (session_config, mysql_connection) => {
+      const fallbackDates = global.db_params || {};
+
+      if (!session_config.created_at) {
+        session_config.created_at = fallbackDates.iat || new Date();
+      }
+      if (!session_config.expires_at) {
+        session_config.expires_at = fallbackDates.exp || new Date();
+      }
+
       checkSessionFields(session_config);
 
       // build the query dynamically based on the session_config object

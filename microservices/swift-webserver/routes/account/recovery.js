@@ -27,9 +27,10 @@ RecoveryRouter.post("/", RecoveryValidator, async (req, res) => {
       deviceInfo: req.body.device_info,
     });
     const { refresh_token, success, ...responseBody } = response;
+    const clientResponse = { success, ...responseBody };
 
     if (!success) {
-      return res.status(400).json(responseBody);
+      return res.status(400).json(clientResponse);
     }
 
     const ttlString = process.env.JWT_AUTH_REFRESH_TOKEN_TTL || "30";
@@ -43,7 +44,7 @@ RecoveryRouter.post("/", RecoveryValidator, async (req, res) => {
       expires: new Date(Date.now() + REFRESH_TTL_MS),
     });
 
-    return res.status(200).json(responseBody);
+    return res.status(200).json(clientResponse);
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

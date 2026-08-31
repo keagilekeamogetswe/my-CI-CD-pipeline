@@ -28,12 +28,8 @@ export default function VerifyPage({
 }: VerifyPageProps) {
   const [code, setCode] = useState<string[]>(Array(6).fill(""));
   const [timeLeft, setTimeLeft] = useState<number>(120); // 2 minutes = 120 seconds
-  const [error, setError] = useState<string>(errorMessage);
+  const [error, setError] = useState<string>("");
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  useEffect(() => {
-    setError(errorMessage);
-  }, [errorMessage]);
 
   // 2-Minute Countdown Timer
   useEffect(() => {
@@ -181,16 +177,16 @@ export default function VerifyPage({
           </div>
 
           {/* Validation / Error Message */}
-          {error && (
+          {(error || errorMessage) && (
             <p className="text-red-500 text-xs mt-2 font-medium pl-1">
-              {error}
+              {error || errorMessage}
             </p>
           )}
         </div>
 
         {/* Resend Code Section */}
         <div className="flex items-center justify-between text-xs text-gray-500 pt-1">
-          <span>Didn't receive the code?</span>
+          <span>Didn&apos;t receive the code?</span>
           {timeLeft > 0 ? (
             <span className="text-gray-400 font-medium">
               Resend in {formatTime(timeLeft)}

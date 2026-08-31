@@ -359,7 +359,8 @@ describe("User Account Creation Flow (gRPC & HTTP E2E)", () => {
 
     expect(response.status).toBe(400);
     expect(body).toMatchObject({
-      error: expect.any(String),
+      success: false,
+      message: "Invalid verification code.",
     });
   });
 });

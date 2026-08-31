@@ -23,6 +23,10 @@ describe("Job flow integration testing", () => {
     // 3. START THE TRANSACTION: This creates our isolated sandbox environment
     await mysql_connection.query("START TRANSACTION;");
 
+    await mysql_connection.execute(
+      "UPDATE jobs SET status = 'done' WHERE status = 'queued'",
+    );
+
     // 4. Inject the test job fixture safely (No need to truncate tables!)
     const job_insert_query = `
     INSERT INTO jobs (type, status, payload, attempts)
@@ -40,7 +44,7 @@ describe("Job flow integration testing", () => {
     try {
       // 5. ROLLBACK EVERYTHING: Instantly undoes the INSERT and all subsequent updates
       await mysql_connection.query("ROLLBACK;");
-      await mysql_connection.end();
+      await mysql_connection.release();
     } catch (error) {
       console.error("Cleanup connection failure:", error);
     }

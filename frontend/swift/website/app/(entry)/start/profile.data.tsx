@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 
 interface ProfileStartProps {
   phoneNumber: string;
@@ -30,12 +30,6 @@ export default function ProfileStart({
   const [firstName, setFirstName] = useState(initialData?.firstName ?? "");
   const [lastName, setLastName] = useState(initialData?.lastName ?? "");
   const [dob, setDob] = useState(initialData?.dob ?? "");
-
-  useEffect(() => {
-    setFirstName(initialData?.firstName ?? "");
-    setLastName(initialData?.lastName ?? "");
-    setDob(initialData?.dob ?? "");
-  }, [initialData]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
