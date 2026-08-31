@@ -13,19 +13,6 @@ import {
   DeviceContext,
 } from "../../lib/device-context";
 
-function maskValue(value: string) {
-  if (!value) {
-    return "";
-  }
-
-  if (value.includes("@")) {
-    const [name, domain] = value.split("@");
-    return `${name.slice(0, 2)}***@${domain}`;
-  }
-
-  return value.length <= 4 ? "****" : `${"*".repeat(value.length - 4)}${value.slice(-4)}`;
-}
-
 const COUNTRY_DATA = [
   { name: "United States", code: "+1", flag: "🇺🇸" },
   { name: "South Africa", code: "+27", flag: "🇿🇦" },
@@ -190,8 +177,8 @@ export default function StartPage() {
           optedIn: payload.optedIn,
           recoveryMethod: payload.recoveryMethod,
           allowSyncedAuth: payload.allowSyncedAuth,
-          syncedPhoneNumberMasked: maskValue(payload.syncedPhoneNumber),
-          recoveryValueMasked: maskValue(payload.recoveryValue),
+          hasSyncedPhoneNumber: Boolean(payload.syncedPhoneNumber),
+          hasRecoveryValue: Boolean(payload.recoveryValue),
         },
         retentionLabel,
         onboardingCompletedAt: new Date().toISOString(),
