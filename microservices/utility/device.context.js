@@ -27,11 +27,24 @@ export function normalizeDeviceContext(deviceInfo, fallback = {}) {
     parsed = deviceInfo;
   }
 
+  let fallbackDeviceInfoName = "";
+  if (fallback.device_info) {
+    if (typeof fallback.device_info === "string") {
+      try {
+        fallbackDeviceInfoName = JSON.parse(fallback.device_info).device_name || "";
+      } catch {
+        fallbackDeviceInfoName = fallback.device_info;
+      }
+    } else if (typeof fallback.device_info === "object") {
+      fallbackDeviceInfoName = fallback.device_info.device_name || "";
+    }
+  }
+
   const device_name =
     parsed.device_name ||
     parsed.device_info ||
     fallback.device_name ||
-    fallback.device_info ||
+    fallbackDeviceInfoName ||
     "";
 
   const webgl_fingerprint =
@@ -71,7 +84,7 @@ export function normalizeDeviceContext(deviceInfo, fallback = {}) {
 export function claimsFromDeviceContext(deviceContext) {
   return {
     device_name: deviceContext.device_name || "",
-    device_info: deviceContext.device_info || deviceContext.device_name || "",
+    device_info: deviceContext.device_name || "",
     ip_address: deviceContext.ip_address || "",
     webgl_fingerprint: deviceContext.webgl_fingerprint || deviceContext.finger_print || "",
     user_agent: deviceContext.user_agent || "",
@@ -108,6 +121,7 @@ export function buildRequestDeviceContext(req, payload = {}) {
       ip_address: requestIp,
       user_agent: requestUserAgent,
       device_name: payload.device_name || "",
+      device_info: payload.device_info,
       webgl_fingerprint: payload.webgl_fingerprint || payload.finger_print || payload.fp_hash || "",
       device_id_hash: payload.device_id_hash || "",
     },
