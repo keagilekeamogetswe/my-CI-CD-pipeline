@@ -13,8 +13,9 @@ const WHITELISTED_ROUTES = [
 if (process.env.ENV == "test") WHITELISTED_ROUTES.push("/api/white-listed");
 const ACCESS_TOKEN_SECRET =
   process.env.JWT_ACCESS_TOKEN_SECRET ||
-  process.env.JWT_ACCESSS_TOKEN_PUBLIC_KEY ||
-  process.env.JWT_ACCESSS_TOKEN_PRIVATE_KEY;
+  process.env.JWT_ACCESS_TOKEN_PUBLIC_KEY ||
+  // Preserve the legacy typo during env migration so older test/deploy setups still work.
+  process.env.JWT_ACCESSS_TOKEN_PUBLIC_KEY;
 
 export async function authMiddleware(req, res, next) {
   if (WHITELISTED_ROUTES.includes(req.path)) {
@@ -29,7 +30,10 @@ export async function authMiddleware(req, res, next) {
   const token = authHeader.split(" ")[1];
 
   try {
-    const { payload } = await JWTHelper.decode(token, ACCESS_TOKEN_SECRET);
+    const { payload } = await JWTHelper.verifyEncrypted(
+      token,
+      ACCESS_TOKEN_SECRET,
+    );
     const requestDeviceContext = buildRequestDeviceContext(req, payload);
     assertMatchingDeviceContext(requestDeviceContext, payload);
     req.user = payload;

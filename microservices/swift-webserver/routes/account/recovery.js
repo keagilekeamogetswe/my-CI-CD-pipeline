@@ -1,6 +1,7 @@
 import express from "express";
 import { body, validationResult } from "express-validator";
-import { UserRecoverAccountGRPCClient } from "../../../grpc-clients/user/user.log.js";
+import { UserRecoverAccountGRPCClient } from "../../../grpc-clients/user/recover.account.js";
+import { buildRequestDeviceContext } from "../../../utility/device.context.js";
 
 const RecoveryRouter = express.Router();
 
@@ -11,6 +12,7 @@ const RecoveryValidator = [
     .isString()
     .notEmpty()
     .withMessage("device_info is required"),
+  body("fp_hash").optional().isString(),
 ];
 
 RecoveryRouter.post("/", RecoveryValidator, async (req, res) => {
@@ -21,10 +23,14 @@ RecoveryRouter.post("/", RecoveryValidator, async (req, res) => {
   }
 
   try {
+    const requestDeviceContext = buildRequestDeviceContext(req, {
+      device_info: req.body.device_info,
+      fp_hash: req.body.fp_hash,
+    });
     const response = await UserRecoverAccountGRPCClient.RecoverAccount({
       userId: req.body.user_id,
       password: req.body.password,
-      deviceInfo: req.body.device_info,
+      deviceInfo: requestDeviceContext.device_info,
     });
     const { refresh_token, success, ...responseBody } = response;
     const clientResponse = { success, ...responseBody };

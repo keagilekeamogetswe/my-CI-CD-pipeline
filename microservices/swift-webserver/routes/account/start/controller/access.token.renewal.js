@@ -19,7 +19,7 @@ export const AccessTokenRenewalController = async (req, res) => {
     const clientResponse = { success, ...responseBody };
 
     if (success) {
-      const ttlString = process.env.JWT_AUTH_REFRESH_TOKEN_TTL || "30d";
+      const ttlString = process.env.JWT_AUTH_REFRESH_TOKEN_TTL || "30";
       const days = parseInt(ttlString, 10);
       const REFRESH_TTL_MS = days * 24 * 60 * 60 * 1000;
 

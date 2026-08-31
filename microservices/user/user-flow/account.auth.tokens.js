@@ -11,8 +11,8 @@ export const AccountAuthToken = (() => {
   const refresh_key = process.env.JWT_AUTH_REFRESH_TOKEN_SECRET;
   const access_key =
     process.env.JWT_ACCESS_TOKEN_SECRET ||
-    process.env.JWT_ACCESSS_TOKEN_PUBLIC_KEY ||
-    process.env.JWT_ACCESSS_TOKEN_PRIVATE_KEY;
+    process.env.JWT_ACCESS_TOKEN_PUBLIC_KEY ||
+    process.env.JWT_ACCESSS_TOKEN_PUBLIC_KEY;
 
   return {
     refresh: {

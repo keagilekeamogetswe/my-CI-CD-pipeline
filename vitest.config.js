@@ -1,17 +1,7 @@
 import { defineConfig, configDefaults } from "vitest/config";
 // Auto add .env for tests
 import dotenv from "dotenv";
-import { generateKeyPairSync } from "crypto";
-
-const { publicKey, privateKey } = generateKeyPairSync("rsa", {
-  modulusLength: 2048,
-  publicKeyEncoding: { type: "spki", format: "pem" },
-  privateKeyEncoding: { type: "pkcs8", format: "pem" },
-});
-
-// write these to env variables
-process.env.JWT_ACCESSS_TOKEN_PUBLIC_KEY = publicKey;
-process.env.JWT_ACCESSS_TOKEN_PRIVATE_KEY = privateKey;
+process.env.JWT_ACCESS_TOKEN_SECRET = "vitest-access-token-secret";
 
 dotenv.config({ path: "./tests/.env" });
 
