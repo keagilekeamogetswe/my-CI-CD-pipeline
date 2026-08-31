@@ -53,7 +53,7 @@ export function normalizeDeviceContext(deviceInfo, fallback = {}) {
 
   return {
     device_name,
-    device_info: device_name,
+    device_info: JSON.stringify({ device_name, webgl_fingerprint, ip_address, user_agent, device_id_hash }),
     webgl_fingerprint,
     finger_print: webgl_fingerprint,
     ip_address,
@@ -70,6 +70,7 @@ export function normalizeDeviceContext(deviceInfo, fallback = {}) {
  */
 export function claimsFromDeviceContext(deviceContext) {
   return {
+    device_name: deviceContext.device_name || "",
     device_info: deviceContext.device_info || deviceContext.device_name || "",
     ip_address: deviceContext.ip_address || "",
     webgl_fingerprint: deviceContext.webgl_fingerprint || deviceContext.finger_print || "",
@@ -95,12 +96,22 @@ export function buildRequestDeviceContext(req, payload = {}) {
   const requestUserAgent =
     (req.headers && req.headers["user-agent"]) || "";
 
-  return normalizeDeviceContext(payload.device_info || payload, {
-    ip_address: requestIp,
-    user_agent: requestUserAgent,
-    webgl_fingerprint: payload.webgl_fingerprint || payload.finger_print || payload.fp_hash || "",
-    device_id_hash: payload.device_id_hash || "",
-  });
+  const headerFingerprint =
+    (req.headers && req.headers["x-webgl-fingerprint"]) || "";
+
+  const headerDeviceName =
+    (req.headers && req.headers["x-device-name"]) || "";
+
+  return normalizeDeviceContext(
+    { device_name: headerDeviceName, webgl_fingerprint: headerFingerprint },
+    {
+      ip_address: requestIp,
+      user_agent: requestUserAgent,
+      device_name: payload.device_name || "",
+      webgl_fingerprint: payload.webgl_fingerprint || payload.finger_print || payload.fp_hash || "",
+      device_id_hash: payload.device_id_hash || "",
+    },
+  );
 }
 
 /**
@@ -132,5 +143,12 @@ export function assertMatchingDeviceContext(requestContext, tokenPayload) {
     tokenFingerprint !== requestFingerprint
   ) {
     throw new Error("Device context mismatch: fingerprint does not match");
+  }
+
+  const tokenDeviceName = tokenPayload.device_name || "";
+  const requestDeviceName = requestContext.device_name || "";
+
+  if (tokenDeviceName && requestDeviceName && tokenDeviceName !== requestDeviceName) {
+    throw new Error("Device context mismatch: device name does not match");
   }
 }

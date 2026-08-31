@@ -26,7 +26,7 @@ if (process.env.ENV == "test") {
       return res.status(401).json({ error: "Invalid or expired access token" });
     }
 
-    const tokenDeviceName = payload.device_info || "";
+    const tokenDeviceName = payload.device_name || "";
     const requestDeviceName = req.headers["x-device-name"] || "";
 
     if (tokenDeviceName && tokenDeviceName !== requestDeviceName) {
