@@ -19,7 +19,11 @@ RecoveryRouter.post("/", RecoveryValidator, async (req, res) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    return res.status(400).json({
+      success: false,
+      message: errors.array()[0]?.msg || "Invalid recovery request.",
+      errors: errors.array(),
+    });
   }
 
   try {
@@ -30,7 +34,13 @@ RecoveryRouter.post("/", RecoveryValidator, async (req, res) => {
     const response = await UserRecoverAccountGRPCClient.RecoverAccount({
       userId: req.body.user_id,
       password: req.body.password,
-      deviceInfo: requestDeviceContext.device_info,
+      deviceInfo: {
+        device_name: requestDeviceContext.device_name,
+        user_agent: requestDeviceContext.user_agent,
+        webgl_fingerprint: requestDeviceContext.webgl_fingerprint,
+        device_id_hash: requestDeviceContext.device_id_hash,
+        ip_address: requestDeviceContext.ip_address,
+      },
     });
     const { refresh_token, success, ...responseBody } = response;
     const clientResponse = { success, ...responseBody };
@@ -52,6 +62,7 @@ RecoveryRouter.post("/", RecoveryValidator, async (req, res) => {
 
     return res.status(200).json(clientResponse);
   } catch (error) {
+    console.error("gRPC Recovery Error:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 });

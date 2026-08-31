@@ -18,10 +18,10 @@
 - the frontend maintains a background renewal loop so active sessions can rotate access tokens without interrupting the messaging experience
 
 ## Testing
-- `cd /home/runner/work/my-CI-CD-pipeline/my-CI-CD-pipeline/frontend/swift/website && npm run lint`
-- `cd /home/runner/work/my-CI-CD-pipeline/my-CI-CD-pipeline/frontend/swift/website && npm run build`
-- `cd /home/runner/work/my-CI-CD-pipeline/my-CI-CD-pipeline && bash test.containers.setup.sh`
-- `cd /home/runner/work/my-CI-CD-pipeline/my-CI-CD-pipeline && npm test`
+- `cd frontend/swift/website && npm run lint`
+- `cd frontend/swift/website && npm run build`
+- `bash test.containers.setup.sh`
+- `npm test`
 
 ## Endpoint Contract Validation
 - `/api/start` now forwards the gRPC account-creation request payload and response shape, including the verification token contract

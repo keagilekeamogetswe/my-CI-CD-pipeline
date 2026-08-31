@@ -13,6 +13,19 @@ import {
   DeviceContext,
 } from "../../lib/device-context";
 
+function maskValue(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  if (value.includes("@")) {
+    const [name, domain] = value.split("@");
+    return `${name.slice(0, 2)}***@${domain}`;
+  }
+
+  return value.length <= 4 ? "****" : `${"*".repeat(value.length - 4)}${value.slice(-4)}`;
+}
+
 const COUNTRY_DATA = [
   { name: "United States", code: "+1", flag: "🇺🇸" },
   { name: "South Africa", code: "+27", flag: "🇿🇦" },
@@ -52,10 +65,6 @@ export default function StartPage() {
     plan: "free",
     allowSyncedAuth: false,
     syncedPhoneNumber: "",
-  });
-  const [sessionState, setSessionState] = useState({
-    accessToken: "",
-    retentionLabel: "",
   });
 
   useEffect(() => {
@@ -154,10 +163,6 @@ export default function StartPage() {
         throw new Error(result.message || "Verification failed.");
       }
 
-      setSessionState({
-        accessToken: result.access_token,
-        retentionLabel: "",
-      });
       setCurrentStep("customize");
     } catch (verifyError) {
       setError(
@@ -181,16 +186,17 @@ export default function StartPage() {
         phoneNumber: `${dialCode} ${phone_body}`,
         profile: profileData,
         customization,
-        recovery: payload,
-        accessToken: sessionState.accessToken,
+        recovery: {
+          optedIn: payload.optedIn,
+          recoveryMethod: payload.recoveryMethod,
+          allowSyncedAuth: payload.allowSyncedAuth,
+          syncedPhoneNumberMasked: maskValue(payload.syncedPhoneNumber),
+          recoveryValueMasked: maskValue(payload.recoveryValue),
+        },
         retentionLabel,
         onboardingCompletedAt: new Date().toISOString(),
       }),
     );
-    setSessionState((current) => ({
-      ...current,
-      retentionLabel,
-    }));
     router.push("/messages");
   };
 
