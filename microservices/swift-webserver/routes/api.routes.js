@@ -2,7 +2,7 @@ import express from "express";
 import StartRouter from "./account/start";
 import { AccessTokenRenewalController } from "./account/start/controller/access.token.renewal";
 import RecoveryRouter from "./account/recovery";
-import { JWTHelper } from "../../../utility/jwt.js";
+import { JWTHelper } from "../../utility/jwt.js";
 // API ROUTES (Mount everything under /api)
 const ApiRouter = express.Router();
 if (process.env.ENV == "test") {

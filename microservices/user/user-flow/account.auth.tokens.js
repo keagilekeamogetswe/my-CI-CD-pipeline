@@ -35,7 +35,10 @@ export const AccountAuthToken = (() => {
 
         const session_payload = {
           user_id: payload.user_id,
-          device_info: deviceContext.device_info,
+          device_info: JSON.stringify({
+            device_name: deviceContext.device_name,
+            webgl_fingerprint: deviceContext.webgl_fingerprint,
+          }),
           ip_address: deviceContext.ip_address,
           fp_hash: await argon2.hash(finger_print),
         };
