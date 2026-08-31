@@ -16,15 +16,18 @@
  */
 export function normalizeDeviceContext(deviceInfo, fallback = {}) {
   let parsed = {};
+  let deviceInfoWasJson = false;
 
   if (typeof deviceInfo === "string") {
     try {
       parsed = JSON.parse(deviceInfo);
+      deviceInfoWasJson = true;
     } catch {
       parsed = {};
     }
   } else if (deviceInfo && typeof deviceInfo === "object") {
     parsed = deviceInfo;
+    deviceInfoWasJson = true;
   }
 
   let fallbackDeviceInfoName = "";
@@ -66,7 +69,9 @@ export function normalizeDeviceContext(deviceInfo, fallback = {}) {
 
   return {
     device_name,
-    device_info: JSON.stringify({ device_name, webgl_fingerprint, ip_address, user_agent, device_id_hash }),
+    device_info: deviceInfoWasJson
+      ? JSON.stringify({ device_name, webgl_fingerprint, ip_address, user_agent, device_id_hash })
+      : device_name,
     webgl_fingerprint,
     finger_print: webgl_fingerprint,
     ip_address,
