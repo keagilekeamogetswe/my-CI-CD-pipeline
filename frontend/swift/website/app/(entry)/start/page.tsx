@@ -4,18 +4,19 @@ import { useState, ChangeEvent, FormEvent } from "react";
 import ProfileStart from "./profile.data";
 
 const COUNTRY_DATA = [
-  { name: "United States", code: "+1", flag: "🇺🇸" },
-  { name: "South Africa", code: "+27", flag: "🇿🇦" },
-  { name: "United Kingdom", code: "+44", flag: "🇬🇧" },
-  { name: "India", code: "+91", flag: "🇮🇳" },
-  { name: "Australia", code: "+61", flag: "🇦🇺" },
-  { name: "Germany", code: "+49", flag: "🇩🇪" },
-  { name: "France", code: "+33", flag: "🇫🇷" },
+  { name: "United States", code: "+1", flag: "🇺🇸", dial_code_id: 1 },
+  { name: "South Africa", code: "+27", flag: "🇿🇦", dial_code_id: 2 },
+  { name: "United Kingdom", code: "+44", flag: "🇬🇧", dial_code_id: 3 },
+  { name: "India", code: "+91", flag: "🇮🇳", dial_code_id: 4 },
+  { name: "Australia", code: "+61", flag: "🇦🇺", dial_code_id: 5 },
+  { name: "Germany", code: "+49", flag: "🇩🇪", dial_code_id: 6 },
+  { name: "France", code: "+33", flag: "🇫🇷", dial_code_id: 7 },
 ];
 
 export default function StartPage() {
   const [selectedCountry, setSelectedCountry] = useState(COUNTRY_DATA[0].name);
   const [dialCode, setDialCode] = useState(COUNTRY_DATA[0].code);
+  const [dialCodeId, setDialCodeId] = useState<number>(1);
   const [phone_body, setPhoneBody] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [next, setNext] = useState<boolean>(false);
@@ -24,7 +25,10 @@ export default function StartPage() {
     const countryName = e.target.value;
     setSelectedCountry(countryName);
     const matched = COUNTRY_DATA.find((c) => c.name === countryName);
-    if (matched) setDialCode(matched.code);
+    if (matched) {
+      setDialCode(matched.code);
+      setDialCodeId(matched.dial_code_id);
+    }
   };
 
   const handleNext = (e: FormEvent) => {
@@ -167,7 +171,9 @@ export default function StartPage() {
     </div>
   ) : (
     <ProfileStart
-      phoneNumber={`${dialCode} ${phone_body}`}
+      code={dialCode}
+      body={phone_body}
+      dial_code_id={dialCodeId}
       onEdit={() => setNext(false)}
     />
   );

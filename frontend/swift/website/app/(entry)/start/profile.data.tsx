@@ -3,12 +3,16 @@ import Link from "next/link";
 import { FormEvent } from "react";
 
 interface ProfileStartProps {
-  phoneNumber?: string;
+  code: string;
+  body: string;
+  dial_code_id: number;
   onEdit?: () => void;
 }
 
 export default function ProfileStart({
-  phoneNumber = "",
+  code,
+  body,
+  dial_code_id,
   onEdit,
 }: ProfileStartProps) {
   const handleSubmit = (e: FormEvent) => {
@@ -26,7 +30,7 @@ export default function ProfileStart({
         <p className="text-sm text-gray-600 leading-relaxed">
           A verification code will be sent to{" "}
           <strong className="font-semibold text-gray-900">
-            {phoneNumber || "+1 (555) 000-0000"}
+            {code && body ? `${code} ${body}` : "+1 (555) 000-0000"}
           </strong>
           .{" "}
           <button
