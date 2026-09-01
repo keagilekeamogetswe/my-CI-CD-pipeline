@@ -3,10 +3,24 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import { generateKeyPairSync } from "crypto";
+import fs from "fs/promises";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const envPath = path.resolve(__dirname, "./../../tests/.env");
+const envConfig = dotenv.parse(await fs.readFile(envPath));
+
+for (const key in envConfig) {
+  process.env[key] = envConfig[key];
+}
+
 const PORT = "3002";
 const GRPC_PORT = "50051";
+
+// Both forked services run on the host during tests, not on the Docker network.
+process.env.USER_GRPC_HOST = "localhost";
+process.env.GRPC_USER_PORT = GRPC_PORT;
+process.env.USER_GRPC_PORT = GRPC_PORT;
 
 // Auto add .env for tests
 const { publicKey, privateKey } = generateKeyPairSync("rsa", {
@@ -87,7 +101,13 @@ async function startGRPCUserServer() {
     [],
     {
       execArgv: ["--import=extensionless/register"],
-      env: { ...process.env, ENV: "test" },
+      env: {
+        ...process.env,
+        ENV: "test",
+        USER_GRPC_HOST: "localhost",
+        GRPC_USER_PORT: GRPC_PORT,
+        USER_GRPC_PORT: GRPC_PORT,
+      },
       silent: true,
     },
   );
@@ -114,7 +134,14 @@ async function startWebserver() {
     [],
     {
       execArgv: ["--import=extensionless/register"],
-      env: { ...process.env, PORT, ENV: "test" },
+      env: {
+        ...process.env,
+        PORT,
+        ENV: "test",
+        USER_GRPC_HOST: "localhost",
+        GRPC_USER_PORT: GRPC_PORT,
+        USER_GRPC_PORT: GRPC_PORT,
+      },
       silent: true,
     },
   );
