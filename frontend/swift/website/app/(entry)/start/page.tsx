@@ -167,7 +167,7 @@ export default function StartPage() {
     </div>
   ) : (
     <ProfileStart
-      phoneNumber={`${dialCode} =${phone_body}`}
+      phoneNumber={`${dialCode} ${phone_body}`}
       onEdit={() => setNext(false)}
     />
   );
