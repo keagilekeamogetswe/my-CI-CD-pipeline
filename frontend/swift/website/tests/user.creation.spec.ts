@@ -1,7 +1,7 @@
 import { test, expect, Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
-const BASE = "http://localhost:3000";
+const BASE = "http://localhost:";
 
 const USER = {
   country: "South Africa",
