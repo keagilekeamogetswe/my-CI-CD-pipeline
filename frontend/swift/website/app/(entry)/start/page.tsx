@@ -4,7 +4,7 @@ import { useState, ChangeEvent, FormEvent } from "react";
 import ProfileStart from "./profile.data";
 
 const COUNTRY_DATA = [
-  { name: "United States", code: "+1", flag: "🇺🇸", dial_code_id: 1 },
+  { name: "United States", code: "+27", flag: "🇺🇸", dial_code_id: 1 },
   { name: "South Africa", code: "+27", flag: "🇿🇦", dial_code_id: 2 },
   { name: "United Kingdom", code: "+44", flag: "🇬🇧", dial_code_id: 3 },
   { name: "India", code: "+91", flag: "🇮🇳", dial_code_id: 4 },
