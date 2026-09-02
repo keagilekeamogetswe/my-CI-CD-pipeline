@@ -1,0 +1,58 @@
+name: Playwright
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: frontend/swift/website
+        run: npm ci
+
+      - name: Install Playwright browser
+        working-directory: frontend/swift/website
+        run: npx playwright install --with-deps chromium
+
+      - name: Start backend + frontend services
+        run: |
+          chmod +x ./frontend.test.service.sh
+          nohup bash ./frontend.test.service.sh > /tmp/frontend-test-service.log 2>&1 &
+
+      - name: Wait for frontend
+        run: |
+          for i in {1..90}; do
+            if curl -sSf http://localhost:3000 > /dev/null; then
+              echo "Frontend is up on port 3000"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Frontend did not start in time"
+          tail -n 200 /tmp/frontend-test-service.log || true
+          exit 1
+
+      - name: Run frontend tests
+        working-directory: frontend/swift/website
+        run: npm test -- --project=chromium
+
+      - name: Print service logs on failure
+        if: failure()
+        run: tail -n 200 /tmp/frontend-test-service.log || true
