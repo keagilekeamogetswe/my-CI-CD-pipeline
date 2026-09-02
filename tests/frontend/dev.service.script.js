@@ -96,6 +96,7 @@ function cleanup() {
 }
 
 async function startGRPCUserServer() {
+  const read_code_file_uri = path.resolve(__dirname, "../.output/code.txt");
   grpcServerProcess = fork(
     path.resolve(__dirname, "../../microservices/user/grpc/index.js"),
     [],
@@ -106,6 +107,8 @@ async function startGRPCUserServer() {
         ENV: "test",
         USER_GRPC_HOST: "localhost",
         GRPC_USER_PORT: GRPC_PORT,
+        TEST_VERIFICATION_DIFF: read_code_file_uri,
+
         USER_GRPC_PORT: GRPC_PORT,
       },
       silent: true,
