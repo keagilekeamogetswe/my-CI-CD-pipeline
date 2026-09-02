@@ -36,7 +36,7 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run root test service
-        run: sudo bash ./frontend.test.service.sh
+        run: screen -d -m sudo bash ./frontend.test.service.sh
 
       - name: Wait for services (Next.js, Webserver, and gRPC)
         run: npx wait-on http://localhost:3000 tcp:3002 tcp:50051 -t 60000
