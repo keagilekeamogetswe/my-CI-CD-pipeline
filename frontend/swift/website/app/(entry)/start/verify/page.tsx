@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   useState,
   useEffect,
@@ -10,33 +11,60 @@ import {
   KeyboardEvent,
   ClipboardEvent,
 } from "react";
+import { VerificationPayloadStore } from "../../state-management/payload.persistence";
 
-interface VerifyPageProps {
-  phoneNumber?: string;
-  onBack?: () => void;
-  onSuccess?: () => void;
-}
+export default function VerifyPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const phoneNumber = searchParams.get("phone");
+  const maskedPhoneNumber = phoneNumber ?? "your phone number";
 
-export default function VerifyPage({
-  phoneNumber = "+1 (555) 000-0000",
-  onBack,
-  onSuccess,
-}: VerifyPageProps) {
   const [code, setCode] = useState<string[]>(Array(6).fill(""));
-  const [timeLeft, setTimeLeft] = useState<number>(120); // 2 minutes = 120 seconds
+  const [timeLeft, setTimeLeft] = useState<number>(0);
   const [error, setError] = useState<string>("");
+  const [isConfirming, setIsConfirming] = useState<boolean>(false);
+  const [isResending, setIsResending] = useState<boolean>(false);
+  const [isConfirmed, setIsConfirmed] = useState<boolean>(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const hasAlertedRef = useRef<boolean>(false);
 
-  // 2-Minute Countdown Timer
   useEffect(() => {
-    if (timeLeft <= 0) return;
+    if (hasAlertedRef.current) return;
+    const payload = VerificationPayloadStore.getPayload();
+    if (!payload) {
+      hasAlertedRef.current = true;
+      window.alert(
+        "Unable to proceed with this action. Starting over the process.",
+      );
+      router.push("/start");
+    }
+  }, [router]);
 
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
+  // Calculate remaining seconds based on 'expires_at' URL search parameter
+  useEffect(() => {
+    const expiresAtParam = searchParams.get("expires_at");
+    if (!expiresAtParam) {
+      // Default fallback if query param isn't present
+      setTimeLeft(0);
+      return;
+    }
+
+    const expiresAt = parseInt(expiresAtParam, 10);
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const diffInSeconds = Math.max(0, Math.floor((expiresAt - now) / 1000));
+      setTimeLeft(diffInSeconds);
+    };
+
+    // Immediate initial call
+    updateTimer();
+
+    // Recalculate remaining time every second against absolute epoch target
+    const timer = setInterval(updateTimer, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, [searchParams]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -46,16 +74,15 @@ export default function VerifyPage({
 
   // Handle individual digit input
   const handleChange = (index: number, e: ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/[^0-9]/g, ""); // allow digits only
+    const val = e.target.value.replace(/[^0-9]/g, "");
     if (!val) return;
 
     const newCode = [...code];
-    newCode[index] = val.slice(-1); // Take last entered digit
+    newCode[index] = val.slice(-1);
     setCode(newCode);
 
     if (error) setError("");
 
-    // Auto-focus next input
     if (index < 5 && val) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -91,22 +118,65 @@ export default function VerifyPage({
     setCode(newCode);
     if (error) setError("");
 
-    // Focus last filled digit or final input
     const nextIdx = Math.min(pastedData.length, 5);
     inputRefs.current[nextIdx]?.focus();
   };
 
   // Resend Code Logic
-  const handleResend = () => {
-    setTimeLeft(120);
-    setCode(Array(6).fill(""));
+  const handleResend = async () => {
+    if (isResending || isConfirming || isConfirmed) return;
+    setIsResending(true);
     setError("");
-    inputRefs.current[0]?.focus();
+
+    try {
+      setCode(Array(6).fill(""));
+      inputRefs.current[0]?.focus();
+
+      const payload = VerificationPayloadStore.getPayload();
+      const request = await fetch("/api/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      const response = await request.json();
+
+      if (!request.ok) {
+        console.log("Resend response:", response.message);
+        setError(response.message || "Failed to resend code.");
+        return;
+      }
+
+      const { verification_token } = response;
+
+      // Compute 2 minutes ttl from now
+      const expiryTimestamp = Date.now() + 60 * 2 * 1000;
+
+      const params = new URLSearchParams(window.location.search);
+      if (verification_token) {
+        params.set("token", verification_token);
+      }
+      params.set("expires_at", expiryTimestamp.toString());
+
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+
+      // Update browser history and sync Next.js router
+      window.history.replaceState(null, "", newUrl);
+      router.replace(newUrl, { scroll: false });
+    } catch (err) {
+      console.error(err);
+      setError("An unexpected error occurred while resending code.");
+    } finally {
+      setIsResending(false);
+    }
   };
 
   // Form Submission
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (isConfirming || isResending || isConfirmed) return;
+
     const fullCode = code.join("");
 
     if (fullCode.length < 6) {
@@ -119,26 +189,62 @@ export default function VerifyPage({
       return;
     }
 
+    setIsConfirming(true);
     setError("");
-    if (onSuccess) {
-      onSuccess();
+
+    try {
+      const request = await fetch("/api/start/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code: fullCode,
+          verification_token: searchParams.get("token"),
+        }),
+      });
+      const response = await request.json();
+      if (!request.ok) {
+        setError(response.message || "Verification failed. Please try again.");
+        return;
+      }
+
+      setIsConfirmed(true);
+      VerificationPayloadStore.clear();
+      router.push("/");
+    } catch (err) {
+      console.error(err);
+      setError("An unexpected error occurred during verification.");
+    } finally {
+      setIsConfirming(false);
     }
   };
 
   return (
     <div className="p-8 md:p-10 border border-gray-200 bg-white shadow-sm rounded-2xl max-w-md mx-auto text-gray-900">
+      <style>{`
+        @keyframes drawCheck {
+          0% {
+            stroke-dashoffset: 24;
+          }
+          100% {
+            stroke-dashoffset: 0;
+          }
+        }
+      `}</style>
       {/* Header Section */}
       <div className="mb-6">
         <h1 className="text-xl font-semibold tracking-tight mb-2">
           Verify Your Number
         </h1>
 
-        {/* Empathetic / Pity Explanation Message */}
         <p className="text-sm text-gray-600 leading-relaxed">
           Sorry for the extra step! We’ve already sent a 6-digit code to{" "}
-          <strong className="font-semibold text-gray-900">{phoneNumber}</strong>
+          <strong className="font-semibold text-gray-900">
+            {maskedPhoneNumber}
+          </strong>
           . It will expire in{" "}
-          <span className="font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/60 inline-block">
+          <span className="font-semibold text-neutral-700 bg-neutral-50-50 px-1.5 py-0.5 rounded inline-block">
             {formatTime(timeLeft)}
           </span>
           .
@@ -159,6 +265,7 @@ export default function VerifyPage({
                 inputMode="numeric"
                 maxLength={1}
                 value={digit}
+                disabled={isConfirming || isResending || isConfirmed}
                 onChange={(e) => handleChange(index, e)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
                 onPaste={handlePaste}
@@ -166,7 +273,7 @@ export default function VerifyPage({
                   error
                     ? "border-red-500 ring-1 ring-red-500"
                     : "border-gray-300 focus:border-black focus:ring-1 focus:ring-black"
-                } rounded-lg bg-white focus:outline-none transition-all`}
+                } rounded-lg bg-white focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
                 required
               />
             ))}
@@ -183,7 +290,11 @@ export default function VerifyPage({
         {/* Resend Code Section */}
         <div className="flex items-center justify-between text-xs text-gray-500 pt-1">
           <span>Didn't receive the code?</span>
-          {timeLeft > 0 ? (
+          {isConfirmed ? (
+            <span className="text-green-600 font-medium">Code verified</span>
+          ) : isResending ? (
+            <span className="text-gray-400 font-medium">Resending code...</span>
+          ) : timeLeft > 0 ? (
             <span className="text-gray-400 font-medium">
               Resend in {formatTime(timeLeft)}
             </span>
@@ -191,7 +302,8 @@ export default function VerifyPage({
             <button
               type="button"
               onClick={handleResend}
-              className="font-bold text-black hover:underline cursor-pointer"
+              disabled={isConfirming || isResending || isConfirmed}
+              className="font-bold text-black hover:underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
             >
               Resend code
             </button>
@@ -202,27 +314,73 @@ export default function VerifyPage({
         <div className="space-y-2.5 pt-2">
           <button
             type="submit"
-            className="w-full bg-black hover:bg-neutral-800 text-white font-medium text-sm py-3 rounded-lg transition-colors cursor-pointer"
+            disabled={isConfirming || isResending || isConfirmed}
+            className={`w-full ${
+              isConfirmed
+                ? "bg-green-600 text-white cursor-default"
+                : "bg-black hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed text-white cursor-pointer"
+            } font-medium text-sm py-3 rounded-lg transition-colors flex items-center justify-center gap-2`}
           >
-            Confirm Code
+            {isConfirming && (
+              <svg
+                className="animate-spin h-4 w-4 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8H4z"
+                ></path>
+              </svg>
+            )}
+            {isConfirmed && (
+              <svg
+                className="h-4 w-4 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline
+                  points="4 12 9 17 20 6"
+                  style={{
+                    strokeDasharray: 24,
+                    strokeDashoffset: 24,
+                    animation: "drawCheck 0.5s ease-out forwards",
+                  }}
+                />
+              </svg>
+            )}
+            {isConfirmed
+              ? "Verified"
+              : isConfirming
+                ? "Confirming Code..."
+                : "Confirm Code"}
           </button>
 
-          {onBack ? (
-            <button
-              type="button"
-              onClick={onBack}
-              className="w-full text-center border border-gray-300 hover:bg-gray-50 text-gray-800 font-medium text-sm py-2.5 rounded-lg transition-colors cursor-pointer"
-            >
-              Change Phone Number
-            </button>
-          ) : (
-            <Link
-              href="/start"
-              className="block w-full text-center border border-gray-300 hover:bg-gray-50 text-gray-800 font-medium text-sm py-2.5 rounded-lg transition-colors"
-            >
-              Change Phone Number
-            </Link>
-          )}
+          <Link
+            href="/start"
+            className={`block w-full text-center border border-gray-300 hover:bg-gray-50 text-gray-800 font-medium text-sm py-2.5 rounded-lg transition-colors ${
+              isConfirming || isResending
+                ? "pointer-events-none opacity-50"
+                : ""
+            }`}
+          >
+            Change Phone Number
+          </Link>
         </div>
       </form>
     </div>
