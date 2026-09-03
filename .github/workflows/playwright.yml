@@ -12,7 +12,6 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,30 +19,55 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install root dependencies
         run: npm install
 
-      
       - name: Install frontend dependencies
         working-directory: frontend/swift/website
         run: npm install
+
+      - name: Make setup script executable
+        run: chmod +x test.containers.setup.sh
+
+      - name: Set up test services
+        run: ./test.containers.setup.sh
+
+      - name: Wait for MySQL
+        run: |
+          until docker compose -f tests/docker-compose.yaml exec -T mysql mysqladmin ping -h localhost --silent; do
+            echo "Waiting for MySQL to accept connections..."
+            sleep 3
+          done
+
+      - name: Wait for RabbitMQ
+        run: |
+          until docker compose -f tests/docker-compose.yaml exec -T rabbitmq rabbitmq-diagnostics -q ping; do
+            echo "Waiting for RabbitMQ..."
+            sleep 3
+          done
+
+      - name: Wait for Flyway Migrations
+        run: |
+          until docker compose -f tests/docker-compose.yaml exec -T mysql mysql -uroot -p"supersecret" -e "SHOW TABLES;" test_db | grep -q "user_credentials"; do
+            echo "Waiting for Flyway migrations to complete..."
+            sleep 3
+          done
 
       - name: Install Playwright Browsers
         working-directory: frontend/swift/website
         run: npx playwright install --with-deps
 
       - name: Run root test service
-        run: screen -d -m sudo bash ./frontend.test.service.sh
+        run: |
+          touch service.log
+          screen -d -m sudo bash -c "./frontend.test.service.sh > service.log 2>&1"
+          tail -f service.log &
 
       - name: Wait for services (Next.js, Webserver, and gRPC)
-        run: npx wait-on http://localhost:3000 tcp:3002 tcp:50051 -t 60000
-
-      - name: Run frontend tests
-        working-directory: frontend/swift/website
-        run: npm test
+        run: npx wait-on http://localhost:80 tcp:3002 tcp:50051 -t 180000
 
       - name: Run frontend tests
         working-directory: frontend/swift/website
