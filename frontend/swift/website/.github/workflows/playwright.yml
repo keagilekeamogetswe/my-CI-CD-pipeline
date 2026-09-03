@@ -15,10 +15,35 @@ jobs:
         node-version: lts/*
     - name: Install dependencies
       run: npm ci
+    - name: Make setup script executable
+      run: chmod +x test.containers.setup.sh
+    - name: Set up test services
+      run: ./test.containers.setup.sh
+    - name: Wait for MySQL
+      run: |
+        until docker compose -f tests/docker-compose.yaml exec -T mysql mysqladmin ping -h localhost --silent; do
+          echo "Waiting for MySQL to accept connections..."
+          sleep 3
+        done
+    - name: Wait for RabbitMQ
+      run: |
+        until docker compose -f tests/docker-compose.yaml exec -T rabbitmq rabbitmq-diagnostics -q ping; do
+          echo "Waiting for RabbitMQ..."
+          sleep 3
+        done
+    - name: Wait for Flyway Migrations
+      run: |
+        until docker compose -f tests/docker-compose.yaml exec -T mysql mysql -uroot -p"supersecret" -e "SHOW TABLES;" test_db | grep -q "user_credentials"; do
+          echo "Waiting for Flyway migrations to complete..."
+          sleep 3
+        done
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
     - name: Run Playwright tests
       run: npx playwright test
+    - name: Tear down test services
+      if: always()
+      run: docker compose -f tests/docker-compose.yaml down -v
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
