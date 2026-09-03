@@ -59,7 +59,10 @@ jobs:
       - name: Install Playwright Browsers
         working-directory: frontend/swift/website
         run: npx playwright install --with-deps
-
+        
+      - name: Make root service script executable
+        run: chmod +x frontend.test.service.sh
+        
       - name: Run root test service
         run: |
           touch service.log
