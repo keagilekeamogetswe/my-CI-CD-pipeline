@@ -1,0 +1,51 @@
+name: Playwright
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install frontend dependencies
+        working-directory: frontend/swift/website
+        run: npm install
+
+      - name: Set up test services
+        run: ./test.containers.setup.sh
+
+      - name: Install Playwright Browsers
+        working-directory: frontend/swift/website
+        run: npx playwright install --with-deps
+
+      - name: Run root test service
+        run: screen -d -m sudo bash ./frontend.test.service.sh
+
+      - name: Wait for services (Next.js, Webserver, and gRPC)
+        run: npx wait-on http://localhost:3000 tcp:3002 tcp:50051 -t 180000
+
+      - name: Run frontend tests
+        working-directory: frontend/swift/website
+        run: npm test
+
+      - name: Run frontend tests
+        working-directory: frontend/swift/website
+        run: npm test
