@@ -30,7 +30,7 @@ jobs:
         run: npm install
 
       - name: Set up test services
-        run: sudo ./test.containers.setup.sh
+        run: sudo bash ./test.containers.setup.sh
 
       - name: Install Playwright Browsers
         working-directory: frontend/swift/website
