@@ -16,11 +16,13 @@ for (const key in envConfig) {
 
 const PORT = "3002";
 const GRPC_PORT = "50051";
+const HEALTH_PORT = "3003";
 
 // Both forked services run on the host during tests, not on the Docker network.
 process.env.USER_GRPC_HOST = "localhost";
 process.env.GRPC_USER_PORT = GRPC_PORT;
 process.env.USER_GRPC_PORT = GRPC_PORT;
+process.env.HEALTH_PORT = HEALTH_PORT;
 
 // Auto add .env for tests
 const { publicKey, privateKey } = generateKeyPairSync("rsa", {
@@ -108,8 +110,8 @@ async function startGRPCUserServer() {
         USER_GRPC_HOST: "localhost",
         GRPC_USER_PORT: GRPC_PORT,
         TEST_VERIFICATION_DIFF: read_code_file_uri,
-
         USER_GRPC_PORT: GRPC_PORT,
+        HEALTH_PORT,
       },
       silent: true,
     },
@@ -167,9 +169,10 @@ async function startWebserver() {
 
 async function main() {
   try {
-    console.log("Pre-checking ports 50051 and 3002...");
+    console.log("Pre-checking ports 50051, 3002, and 3003...");
     killPort(GRPC_PORT);
     killPort(PORT);
+    killPort(HEALTH_PORT);
 
     console.log("Starting gRPC Server...");
     await startGRPCUserServer();
