@@ -183,21 +183,23 @@ async function main() {
   }
 }
 
-process.on("SIGINT", () => {
-  cleanup();
-  process.exit(0);
-});
-process.on("SIGTERM", () => {
-  cleanup();
-  process.exit(0);
-});
-process.on("exit", () => {
-  cleanup();
-});
-process.on("uncaughtException", (err) => {
-  console.error("Uncaught exception:", err);
-  cleanup();
-  process.exit(1);
-});
+if (!process.env.WORKFLOW_MODE) {
+  process.on("SIGINT", () => {
+    cleanup();
+    process.exit(0);
+  });
+  process.on("SIGTERM", () => {
+    cleanup();
+    process.exit(0);
+  });
+  process.on("exit", () => {
+    cleanup();
+  });
+  process.on("uncaughtException", (err) => {
+    console.error("Uncaught exception:", err);
+    cleanup();
+    process.exit(1);
+  });
+}
 
 main();
