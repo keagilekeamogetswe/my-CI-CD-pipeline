@@ -1,9 +1,11 @@
-import { validationResult } from "express-validator";
 import { AuthenticationGRPCClient as client } from "../../../../../grpc-clients/user/access.token.renew";
-import cookieParser from "cookie-parser";
 
 export const AccessTokenRenewalController = async (req, res) => {
   const refresh_token = req.cookies.refresh_token;
+
+  if (!refresh_token) {
+    return res.status(400).json({ error: "Refresh token not supplied" });
+  }
 
   try {
     const response = await client.RenewAccessToken({ refresh_token });

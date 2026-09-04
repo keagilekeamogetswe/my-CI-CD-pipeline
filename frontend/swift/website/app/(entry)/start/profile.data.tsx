@@ -1,19 +1,71 @@
 "use client";
 import Link from "next/link";
-import { FormEvent } from "react";
-
-interface ProfileStartProps {
-  phoneNumber?: string;
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import { VerificationPayloadStore } from "@/app/(entry)/state-management/payload.persistence";
+export interface PhoneProps {
+  code: string;
+  body: string;
+  dial_code_id: number;
   onEdit?: () => void;
 }
 
 export default function ProfileStart({
-  phoneNumber = "",
+  code,
+  body,
+  dial_code_id,
   onEdit,
-}: ProfileStartProps) {
-  const handleSubmit = (e: FormEvent) => {
+}: PhoneProps) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Proceed with registration flow
+    setError(null);
+    setLoading(true);
+
+    try {
+      // Proceed with registration flow
+      const formData = new FormData(e.currentTarget);
+      const payload = {
+        name: String(formData.get("firstName") ?? ""),
+        dob: String(formData.get("dob") ?? ""),
+        lastname: String(formData.get("lastName") ?? ""),
+        phone: {
+          code,
+          body,
+          dial_code_id,
+        },
+      };
+      VerificationPayloadStore.setPayload(payload);
+      const request = await fetch("/api/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      const response = await request.json();
+      if (request.status !== 200) {
+        setError(response.message || "Failed to proceed. Please try again.");
+        console.error(response.message);
+        setLoading(false);
+        return;
+      }
+      const { verification_token } = response;
+      const maskedPhone = `+(${code.replace("+", "")}) ${body.slice(0, 2)} ***${body.slice(-2)}`;
+      const expiry = Date.now() + 2 * 60 * 1000;
+
+      router.push(
+        `/start/verify?token=${verification_token}&phone=${encodeURIComponent(maskedPhone)}&expires_at=${encodeURIComponent(expiry)}`,
+      );
+    } catch (err) {
+      console.error(err);
+      setError("An unexpected network error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -26,7 +78,7 @@ export default function ProfileStart({
         <p className="text-sm text-gray-600 leading-relaxed">
           A verification code will be sent to{" "}
           <strong className="font-semibold text-gray-900">
-            {phoneNumber || "+1 (555) 000-0000"}
+            {code && body ? `${code} ${body}` : "+1 (555) 000-0000"}
           </strong>
           .{" "}
           <button
@@ -38,6 +90,12 @@ export default function ProfileStart({
           </button>
         </p>
       </div>
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+          {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on">
         {/* Anti-autofill trap */}
