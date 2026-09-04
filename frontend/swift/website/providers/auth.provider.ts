@@ -4,12 +4,15 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { LoadingSplashScreen } from "@/app/splash";
 import StartPage from "@/app/(entry)/start/page";
+import { AccessTokenDeamon } from "@/providers/access-token.deamon";
 
 type AuthContextValue = {
   access_token: string | null;
   expires_at: number;
   isLoading: boolean;
 };
+
+const ACCESS_TOKEN_REQUEST_TIMEOUT_MS = 6_000;
 
 const AuthContext = createContext<AuthContextValue>({
   access_token: null,
@@ -34,22 +37,38 @@ export async function renewAccessToken(): Promise<string | number> {
     return renewPromise;
   }
   renewPromise = (async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      ACCESS_TOKEN_REQUEST_TIMEOUT_MS,
+    );
+
     try {
-      const request = await fetch("/api/access-token", {
+      const request = await fetch("/api/access-token/", {
         method: "GET",
         credentials: "include",
+        signal: controller.signal,
       });
       const data = await request.json();
       const { access_token } = data;
 
-      if (request.ok) {
+      if (
+        request.ok &&
+        typeof access_token === "string" &&
+        access_token.length > 0
+      ) {
+        AccessTokenDeamon.update(access_token);
         return access_token;
       }
-      return request.status;
+
+      AccessTokenDeamon.update(null);
+      return request.ok ? 500 : request.status;
     } catch (error) {
       console.error("Failed to renew access token:", error);
+      AccessTokenDeamon.update(null);
       return 500;
     } finally {
+      clearTimeout(timeoutId);
       renewPromise = null;
     }
   })();
@@ -62,33 +81,66 @@ export function AuthContextProvider({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const isPublicRoute = useIsPublicRoute();
   const [access_token, setAccessToken] = useState<string | null>(null);
   const [expires_at, setExpiresAt] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState(true);
   const [errorCode, setErrorCode] = useState<number | null>(null);
+  const [checkedPathname, setCheckedPathname] = useState<string | null>(null);
+  const isLoading = !isPublicRoute && checkedPathname !== pathname;
 
-  // Fetch access token on initial mount and guard against state updates on unmounted component
+  // Keep React state synchronized with daemon renewals for the provider lifetime.
   useEffect(() => {
     let isMounted = true;
-    (async () => {
-      const tokenResult = await renewAccessToken();
+    const unsubscribe = AccessTokenDeamon.subscribe((tokenState) => {
       if (!isMounted) return;
-      if (typeof tokenResult === "string") {
-        setAccessToken(tokenResult);
-        setExpiresAt(Date.now() + 3 * 60 * 1000);
-      } else {
-        setAccessToken(null);
-        setExpiresAt(0);
-        setErrorCode(tokenResult);
-      }
-      setIsLoading(false);
-    })();
+      setAccessToken(tokenState.access_token);
+      setExpiresAt(tokenState.expires_at);
+    });
+
+    AccessTokenDeamon.start(renewAccessToken);
 
     return () => {
       isMounted = false;
+      unsubscribe();
+      AccessTokenDeamon.stop();
     };
   }, []);
+
+  // Re-check authentication whenever navigation enters a protected route.
+  useEffect(() => {
+    if (isPublicRoute) {
+      const resetId = setTimeout(() => setCheckedPathname(null), 0);
+      return () => clearTimeout(resetId);
+    }
+
+    if (!pathname) {
+      return;
+    }
+
+    let isCurrentCheck = true;
+
+    (async () => {
+      try {
+        const tokenResult = await renewAccessToken();
+        if (!isCurrentCheck) return;
+
+        if (typeof tokenResult === "number") {
+          setErrorCode(tokenResult);
+        } else {
+          setErrorCode(null);
+        }
+      } finally {
+        if (isCurrentCheck) {
+          setCheckedPathname(pathname);
+        }
+      }
+    })();
+
+    return () => {
+      isCurrentCheck = false;
+    };
+  }, [isPublicRoute, pathname]);
 
   // Redirect unauthenticated users attempting to access protected routes
   useEffect(() => {
@@ -106,10 +158,13 @@ export function AuthContextProvider({
     child_to_render = React.createElement(StartPage);
   }
 
-  return React.createElement(AuthContext.Provider, {
-    value: { access_token, expires_at, isLoading },
-    children: child_to_render,
-  });
+  return React.createElement(
+    AuthContext.Provider,
+    {
+      value: { access_token, expires_at, isLoading },
+    },
+    child_to_render,
+  );
 }
 
 export function useAuth() {
