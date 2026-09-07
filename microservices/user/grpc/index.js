@@ -9,6 +9,7 @@ import { RecoverAccountHandler } from "./handlers/recover.account.js";
 import { CreateAccountRequestHandler } from "./handlers/account.creation.request.js";
 import { CreateAccountConfirmHandler } from "./handlers/account.creation.confirm.js";
 import { RenewAccessTokenHandler } from "./handlers/access.token.renewal.js";
+import { UserProfileModifierHandler } from "./handlers/profile.modifier.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,6 +27,7 @@ const grpcObj = grpc.loadPackageDefinition(packageDef);
 const RecoverAccountService = grpcObj.user.RecoverAccount;
 const AccountCreationService = grpcObj.user.AccountCreation;
 const AuthenticationService = grpcObj.user.Authentication;
+const ProfileModificationService = grpcObj.user.ProfileModification;
 
 function log(message, extra = {}) {
   const ts = new Date().toISOString();
@@ -50,6 +52,9 @@ export function startGrpcServer() {
   });
   server.addService(AuthenticationService.service, {
     RenewAccessToken: RenewAccessTokenHandler,
+  });
+  server.addService(ProfileModificationService.service, {
+    ModifyProfile: UserProfileModifierHandler,
   });
 
   server.bindAsync(

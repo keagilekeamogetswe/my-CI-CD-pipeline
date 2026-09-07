@@ -14,6 +14,33 @@ service AccountCreation {
 service Authentication {
   rpc RenewAccessToken (RenewAccessTokenReq) returns (RenewAccessTokenRes);
 }
+
+service ProfileModification {
+  rpc ModifyProfile (ProfileModificationRequest) returns (ProfileModificationResponse);
+}
+
+message ProfileModificationRequest {
+  string user_id = 1;
+
+  oneof update {
+    ProfilePrimaryConfig primary_config = 2;
+    ProfileSecondaryConfig config = 3;
+  }
+}
+
+message ProfilePrimaryConfig {
+  map<string, string> values = 1;
+}
+
+message ProfileSecondaryConfig {
+  map<string, string> values = 1;
+}
+
+message ProfileModificationResponse {
+  bool success = 1;
+  string message = 2;
+}
+
 message RenewAccessTokenReq {
   string refresh_token = 1;
 }
