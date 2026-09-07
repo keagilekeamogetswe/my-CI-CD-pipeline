@@ -25,7 +25,7 @@ export const confirmProfileCreationVerification = async (req, res) => {
       // Set the refresh token as a secure, HTTP-only cookie when not testing
       res.cookie("refresh_token", refresh_token, {
         httpOnly: true,
-        secure: process.env.ENV == "test" ? true : false,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "Strict",
         expires: new Date(Date.now() + REFRESH_TTL_MS),
       });

@@ -29,8 +29,18 @@ export const ProfileRepository  = (()=>{
       return result.affectedRows > 0;
     },
     patchConfig:async(user_id, config, mongo_connection)=>{
-      // MONGO DB: Update user configuration in MongoDB
-
+      const settings = Object.fromEntries(
+        Object.entries(config).map(([key, value]) => [
+          `settings.${key}`,
+          value,
+        ])
+      );
+      const result = await mongo_connection.updateOne(
+        { user: String(user_id) },
+        { $set: settings },
+        { upsert: true }
+      );
+      return result.modifiedCount > 0 || result.upsertedCount > 0;
     }
   }
 })()

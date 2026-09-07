@@ -1,6 +1,8 @@
 import express from "express";
 import StartRouter from "./account/start";
 import { AccessTokenRenewalController } from "./account/start/controller/access.token.renewal";
+import ProfileRouter from "./account/profile";
+
 // API ROUTES (Mount everything under /api)
 const ApiRouter = express.Router();
 if (process.env.ENV == "test") {
@@ -14,4 +16,5 @@ ApiRouter.get("/white-listed", (req, res) => {
 });
 ApiRouter.use("/start", StartRouter);
 ApiRouter.get("/access-token", AccessTokenRenewalController);
+ApiRouter.use("/profile", ProfileRouter);
 export default ApiRouter;
