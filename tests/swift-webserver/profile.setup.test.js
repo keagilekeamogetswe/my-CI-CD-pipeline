@@ -13,7 +13,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const grpcPort = "50062";
 const grpcHealthPort = "3014";
 const webPort = "3013";
-const accessTokenKey = "profile-route-test-key";
 const profileUploadPath = path.resolve(__dirname, "profile.upload.jpg");
 const uploadedImage = await readFile(profileUploadPath);
 const nonSquareImage = await sharp({
@@ -46,12 +45,12 @@ describe("profile setup routes", () => {
     ownerAccessToken = await JWTHelper.sign(
       { user_id: ownerId },
       expiresAt,
-      accessTokenKey,
+      process.env.JWT_ACCESSS_TOKEN_PRIVATE_KEY,
     );
     viewerAccessToken = await JWTHelper.sign(
       { user_id: viewerId },
       expiresAt,
-      accessTokenKey,
+      process.env.JWT_ACCESSS_TOKEN_PRIVATE_KEY,
     );
 
     grpcServerProcess = fork(
@@ -79,7 +78,6 @@ describe("profile setup routes", () => {
           PORT: webPort,
           USER_GRPC_HOST: "localhost",
           USER_GRPC_PORT: grpcPort,
-          JWT_ACCESSS_TOKEN_PUBLIC_KEY: accessTokenKey,
         },
         silent: false,
         stdio: ["inherit", "inherit", "inherit", "ipc"],
@@ -116,10 +114,6 @@ describe("profile setup routes", () => {
       `http://localhost:${webPort}/api/start/profile`,
       {
         method: "POST",
-        /*
-        headers: { authorization: `Bearer ${ownerAccessToken}` },
-        body: form,
-        */
         headers: { authorization: "Bearer " + ownerAccessToken },
         body: form,
       },
