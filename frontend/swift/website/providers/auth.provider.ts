@@ -12,8 +12,6 @@ type AuthContextValue = {
   isLoading: boolean;
 };
 
-const ACCESS_TOKEN_REQUEST_TIMEOUT_MS = 6_000;
-
 const AuthContext = createContext<AuthContextValue>({
   access_token: null,
   expires_at: 0,
@@ -30,50 +28,6 @@ export function useIsPublicRoute() {
 }
 
 // Global promise cache to deduplicate concurrent token renewal requests.
-let renewPromise: Promise<string | number> | null = null;
-
-export async function renewAccessToken(): Promise<string | number> {
-  if (renewPromise) {
-    return renewPromise;
-  }
-  renewPromise = (async () => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(
-      () => controller.abort(),
-      ACCESS_TOKEN_REQUEST_TIMEOUT_MS,
-    );
-
-    try {
-      const request = await fetch("/api/access-token/", {
-        method: "GET",
-        credentials: "include",
-        signal: controller.signal,
-      });
-      const data = await request.json();
-      const { access_token } = data;
-
-      if (
-        request.ok &&
-        typeof access_token === "string" &&
-        access_token.length > 0
-      ) {
-        AccessTokenDeamon.update(access_token);
-        return access_token;
-      }
-
-      AccessTokenDeamon.update(null);
-      return request.ok ? 500 : request.status;
-    } catch (error) {
-      console.error("Failed to renew access token:", error);
-      AccessTokenDeamon.update(null);
-      return 500;
-    } finally {
-      clearTimeout(timeoutId);
-      renewPromise = null;
-    }
-  })();
-  return renewPromise;
-}
 
 export function AuthContextProvider({
   children,
@@ -85,7 +39,9 @@ export function AuthContextProvider({
   const isPublicRoute = useIsPublicRoute();
   const [access_token, setAccessToken] = useState<string | null>(null);
   const [expires_at, setExpiresAt] = useState<number>(0);
-  const [errorCode, setErrorCode] = useState<number | null>(null);
+  const [access_token_has_error, setAccessTokenHasError] = useState<
+    true | false
+  >(false);
   const [checkedPathname, setCheckedPathname] = useState<string | null>(null);
   const isLoading = !isPublicRoute && checkedPathname !== pathname;
 
@@ -94,15 +50,14 @@ export function AuthContextProvider({
     let isMounted = true;
     const unsubscribe = AccessTokenDeamon.subscribe((tokenState) => {
       if (!isMounted) return;
-      setAccessToken(tokenState.access_token);
-      setExpiresAt(tokenState.expires_at);
+      AccessTokenDeamon.subscribe(setAccessToken);
     });
 
-    AccessTokenDeamon.start(renewAccessToken);
+    AccessTokenDeamon.start();
 
     return () => {
       isMounted = false;
-      unsubscribe();
+      AccessTokenDeamon.unsubscribe(setAccessToken);
       AccessTokenDeamon.stop();
     };
   }, []);
@@ -122,13 +77,13 @@ export function AuthContextProvider({
 
     (async () => {
       try {
-        const tokenResult = await renewAccessToken();
+        //The deamon should set the access token;
         if (!isCurrentCheck) return;
 
-        if (typeof tokenResult === "number") {
-          setErrorCode(tokenResult);
+        if (access_token === null) {
+          setAccessTokenHasError(true);
         } else {
-          setErrorCode(null);
+          setAccessTokenHasError(false);
         }
       } finally {
         if (isCurrentCheck) {
@@ -145,10 +100,10 @@ export function AuthContextProvider({
   // Redirect unauthenticated users attempting to access protected routes
   useEffect(() => {
     if (!isLoading && !access_token && !isPublicRoute) {
-      const query = errorCode ? `?redirected_with=${errorCode}` : "";
+      const query = access_token_has_error ? `?redirected_with=401` : "";
       router.replace(`/start${query}`);
     }
-  }, [isLoading, access_token, isPublicRoute, errorCode, router]);
+  }, [isLoading, access_token, isPublicRoute, access_token_has_error, router]);
 
   // Route protection UI: display loading splash screen or fallback entry page on protected routes
   let child_to_render: React.ReactNode = children;

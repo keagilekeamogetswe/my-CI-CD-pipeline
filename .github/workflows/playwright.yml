@@ -73,7 +73,7 @@ jobs:
           tail -f service.log &
 
       - name: Wait for services (Next.js, Webserver, and gRPC)
-        run: npx wait-on http://localhost:80 tcp:3002 tcp:50051 -t 180000
+        run: npx wait-on  http-get://localhost:80/start/ tcp:3002 tcp:50051 -t 180000
 
       - name: Run frontend tests
         working-directory: frontend/swift/website

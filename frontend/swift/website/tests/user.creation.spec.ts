@@ -9,7 +9,7 @@ const USER = {
   firstName: "Keagile",
   lastName: "Keamogetswe",
   dob: "1998-04-12",
-  code: "123456",
+  code: null,
 };
 
 // Force this entire test file to run ONLY in Chromium

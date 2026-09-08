@@ -211,7 +211,7 @@ export default function VerifyPage() {
 
       setIsConfirmed(true);
       VerificationPayloadStore.clear();
-      router.push("/");
+      router.push("/profile-setup");
     } catch (err) {
       console.error(err);
       setError("An unexpected error occurred during verification.");

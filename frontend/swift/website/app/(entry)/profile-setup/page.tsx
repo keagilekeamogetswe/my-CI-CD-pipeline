@@ -12,6 +12,7 @@ export default function ProfileSetupPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [bio, setBio] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -29,6 +30,7 @@ export default function ProfileSetupPage() {
     }
 
     setError(null);
+    setAvatarFile(file);
     const reader = new FileReader();
     reader.onload = () => {
       setAvatarPreview(reader.result as string);
@@ -64,13 +66,14 @@ export default function ProfileSetupPage() {
 
   const handleRemoveAvatar = () => {
     setAvatarPreview(null);
+    setAvatarFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
   const goToNextStep = () => {
-    router.push("/home");
+    router.push("/chats");
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -79,26 +82,26 @@ export default function ProfileSetupPage() {
     setLoading(true);
 
     try {
-      const payload = {
-        avatar: avatarPreview,
-        bio: bio.trim(),
-      };
+      const payload = new FormData();
+      payload.append("bio", bio.trim());
+      if (avatarFile) {
+        payload.append("profile_picture", avatarFile);
+      }
 
-      const request = await AccessTokenDeamon.fetch("/api/profile-setup", {
+      const request = await AccessTokenDeamon.fetch("/api/start/profile", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        body: payload,
       });
 
       const response = await request.json();
+      console.log(response);
 
-      if (request.status !== 200) {
+      if (!request.ok) {
         setError(
-          response.message || "Failed to save profile. Please try again.",
+          response.error ||
+            response.message ||
+            "Failed to save profile. Please try again.",
         );
-        setLoading(false);
         return;
       }
 
