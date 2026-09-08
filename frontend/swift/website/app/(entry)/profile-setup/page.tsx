@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AccessTokenDeamon } from "@/providers/access-token.deamon";
 
 const MAX_BIO_LENGTH = 160;
 
@@ -83,7 +84,7 @@ export default function ProfileSetupPage() {
         bio: bio.trim(),
       };
 
-      const request = await fetch("/api/profile-setup", {
+      const request = await AccessTokenDeamon.fetch("/api/profile-setup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

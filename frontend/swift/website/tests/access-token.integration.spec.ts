@@ -57,6 +57,13 @@ test("renews an access token when a valid refresh token cookie is available", as
   expect(renewalResponse.status()).toBe(200);
   expect(renewalBody.access_token).toEqual(expect.any(String));
 
+  const protectedResponse = await page.request.get(`${BASE}/api/protected/`, {
+    headers: {
+      Authorization: ["Bearer", renewalBody.access_token].join(" "),
+    },
+  });
+  expect(protectedResponse.status()).toBe(200);
+
   const refreshTokenAfterRenewal = (await context.cookies(BASE)).find(
     (cookie) => cookie.name === "refresh_token",
   );
