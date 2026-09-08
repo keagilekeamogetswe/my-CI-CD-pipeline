@@ -5,19 +5,21 @@ export const JWTHelper = (() => {
   return {
     // Signed JWT (JWS) — integrity only
     sign: async (payload, exp, secret) => {
-      const key = new TextEncoder().encode(secret);
+      const key = await jose.importPKCS8(secret, "RS256");
       const jwt = await new jose.SignJWT(payload)
-        .setProtectedHeader({ alg: "HS256" })
+        .setProtectedHeader({ alg: "RS256" })
         .setIssuedAt()
         .setJti(payload.jti ?? crypto.randomUUID())
-        .setExpirationTime(exp) // e.g. "2h" or numeric timestamp
+        .setExpirationTime(exp)
         .sign(key);
       return jwt;
     },
 
     verify: async (jwtToken, secret) => {
-      const key = new TextEncoder().encode(secret);
-      const { payload, protectedHeader } = await jose.jwtVerify(jwtToken, key);
+      const key = await jose.importSPKI(secret, "RS256");
+      const { payload, protectedHeader } = await jose.jwtVerify(jwtToken, key, {
+        algorithms: ["RS256"],
+      });
       return { payload, protectedHeader };
     },
 
@@ -41,6 +43,6 @@ export const JWTHelper = (() => {
 
       const { payload, protectedHeader } = await jose.jwtDecrypt(jweToken, key);
       return { payload, protectedHeader };
-    }
+    },
   };
 })();
