@@ -71,8 +71,9 @@ jobs:
 
       - name: Publish static frontend to swift-webserver
         run: |
-          find microservices/swift-webserver/public -mindepth 1 ! -name "default-account-icon.svg" -exec rm -rf {} +
-          cp -R frontend/swift/website/out/. microservices/swift-webserver/public/
+          rm -rf microservices/swift-webserver/public/playwright-static
+          mkdir -p microservices/swift-webserver/public/playwright-static
+          cp -R frontend/swift/website/out/. microservices/swift-webserver/public/playwright-static/
 
       - name: Make root service script executable
         run: chmod +x frontend.test.service.sh
@@ -80,6 +81,7 @@ jobs:
       - name: Run root test service
         env:
           PORT: "80"
+          STATIC_PUBLIC_DIR: microservices/swift-webserver/public/playwright-static
         run: |
           touch service.log
           screen -d -m sudo bash -c "./frontend.test.service.sh > service.log 2>&1"

@@ -4,12 +4,12 @@ const isStaticExport = process.env.PLAYWRIGHT_STATIC_EXPORT === "true";
 
 const nextConfig: NextConfig = {
   trailingSlash: true,
-  images: {
-    unoptimized: true,
-  },
   ...(isStaticExport
     ? {
         output: "export" as const,
+        images: {
+          unoptimized: true,
+        },
       }
     : {
         async rewrites() {

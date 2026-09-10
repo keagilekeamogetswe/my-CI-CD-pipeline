@@ -8,6 +8,9 @@ import { authMiddleware } from "./middleware/access.token";
 // Standard cross-version ESM approach
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const staticPublicDirectory = process.env.STATIC_PUBLIC_DIR
+  ? path.resolve(process.cwd(), process.env.STATIC_PUBLIC_DIR)
+  : path.join(__dirname, "public");
 
 const app = express();
 app.use(express.json());
@@ -21,13 +24,13 @@ app.all("/api/*splat", (req, res) => {
 });
 
 app.use(
-  express.static(path.join(__dirname, "public"), {
+  express.static(staticPublicDirectory, {
     extensions: ["html"],
   }),
 );
 
 app.get("*splat", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(staticPublicDirectory, "index.html"));
 });
 
 const PORT = process.env.PORT || 3001;
