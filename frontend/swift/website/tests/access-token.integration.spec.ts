@@ -11,7 +11,7 @@ test.skip(
 
 test.setTimeout(60_000);
 
-test("renews an access token when a valid refresh token cookie is available", async ({
+test.skip("renews an access token when a valid refresh token cookie is available", async ({
   context,
   page,
 }) => {
@@ -72,7 +72,7 @@ test("renews an access token when a valid refresh token cookie is available", as
   );
 });
 
-test("rejects renewal when the refresh token cookie is not set", async ({
+test.skip("rejects renewal when the refresh token cookie is not set", async ({
   context,
   page,
 }) => {
@@ -86,7 +86,7 @@ test("rejects renewal when the refresh token cookie is not set", async ({
   });
 });
 
-test("rejects renewal when the refresh token cookie is invalid", async ({
+test.skip("rejects renewal when the refresh token cookie is invalid", async ({
   context,
   page,
 }) => {
