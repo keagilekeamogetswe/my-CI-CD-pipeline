@@ -13,8 +13,8 @@ describe("authMiddleware", () => {
     next = vi.fn();
   });
 
-  it("allows non-API routes without an access token", async () => {
-    await authMiddleware({ path: "/start/", headers: {} }, response, next);
+  it("allows whitelisted API routes without an access token", async () => {
+    await authMiddleware({ path: "/api/start", headers: {} }, response, next);
 
     expect(next).toHaveBeenCalledOnce();
     expect(response.status).not.toHaveBeenCalled();

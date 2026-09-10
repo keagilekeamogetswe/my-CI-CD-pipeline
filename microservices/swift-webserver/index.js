@@ -15,9 +15,7 @@ const staticPublicDirectory = process.env.STATIC_PUBLIC_DIR
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
-app.use(authMiddleware);
-
-app.use("/api", ApiRouter);
+app.use("/api", authMiddleware, ApiRouter);
 
 app.all("/api/*splat", (req, res) => {
   res.status(404).json({ error: "API endpoint not found" });
@@ -28,10 +26,6 @@ app.use(
     extensions: ["html"],
   }),
 );
-
-app.get("*splat", (req, res) => {
-  res.sendFile(path.join(staticPublicDirectory, "index.html"));
-});
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
