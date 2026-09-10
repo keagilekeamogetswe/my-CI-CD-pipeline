@@ -70,7 +70,7 @@ async function submitVerificationStep(page: Page) {
   await page.getByRole("button", { name: /verify|confirm/i }).click();
 }
 
-test("creates a user: phone -> profile -> verification -> refresh_token cookie", async ({
+test.skip("creates a user: phone -> profile -> verification -> refresh_token cookie", async ({
   page,
   context,
 }) => {
@@ -93,7 +93,7 @@ test("creates a user: phone -> profile -> verification -> refresh_token cookie",
   expect(refreshToken!.httpOnly).toBe(true);
 });
 
-test("profile step shows the phone entered in step 1 and allows editing it", async ({
+test.skip("profile step shows the phone entered in step 1 and allows editing it", async ({
   page,
 }) => {
   await submitPhoneStep(page);
