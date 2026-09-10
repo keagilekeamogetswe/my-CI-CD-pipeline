@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  Suspense,
   useState,
   useEffect,
   useRef,
@@ -14,6 +15,14 @@ import {
 import { VerificationPayloadStore } from "../../state-management/payload.persistence";
 
 export default function VerifyPage() {
+  return (
+    <Suspense fallback={<div className="max-w-md mx-auto" />}>
+      <VerifyPageContent />
+    </Suspense>
+  );
+}
+
+function VerifyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const phoneNumber = searchParams.get("phone");
@@ -44,8 +53,6 @@ export default function VerifyPage() {
   useEffect(() => {
     const expiresAtParam = searchParams.get("expires_at");
     if (!expiresAtParam) {
-      // Default fallback if query param isn't present
-      setTimeLeft(0);
       return;
     }
 
@@ -289,7 +296,7 @@ export default function VerifyPage() {
 
         {/* Resend Code Section */}
         <div className="flex items-center justify-between text-xs text-gray-500 pt-1">
-          <span>Didn't receive the code?</span>
+          <span>Didn&apos;t receive the code?</span>
           {isConfirmed ? (
             <span className="text-green-600 font-medium">Code verified</span>
           ) : isResending ? (

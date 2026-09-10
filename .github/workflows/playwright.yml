@@ -63,17 +63,30 @@ jobs:
         working-directory: frontend/swift/website
         run: npx playwright install --with-deps
 
+      - name: Build static frontend
+        working-directory: frontend/swift/website
+        env:
+          PLAYWRIGHT_STATIC_EXPORT: "true"
+        run: npm run build
+
+      - name: Publish static frontend to swift-webserver
+        run: |
+          find microservices/swift-webserver/public -mindepth 1 ! -name "default-account-icon.svg" -exec rm -rf {} +
+          cp -R frontend/swift/website/out/. microservices/swift-webserver/public/
+
       - name: Make root service script executable
         run: chmod +x frontend.test.service.sh
 
       - name: Run root test service
+        env:
+          PORT: "80"
         run: |
           touch service.log
           screen -d -m sudo bash -c "./frontend.test.service.sh > service.log 2>&1"
           tail -f service.log &
 
-      - name: Wait for services (Next.js, Webserver, and gRPC)
-        run: npx wait-on  http-get://localhost:80/start/ tcp:3002 tcp:50051 -t 180000
+      - name: Wait for services (Webserver and gRPC)
+        run: npx wait-on http-get://localhost:80/start/ tcp:50051 -t 180000
 
       - name: Run frontend tests
         working-directory: frontend/swift/website
