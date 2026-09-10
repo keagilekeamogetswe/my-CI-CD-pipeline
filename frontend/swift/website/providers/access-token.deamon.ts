@@ -1,167 +1,138 @@
-type RenewAccessToken = () => Promise<string | number>;
+import { renewAccessToken } from "./renew.method";
 
-type AccessTokenSnapshot = {
-  access_token: string | null;
-  expires_at: number;
-};
-
-type AccessTokenListener = (snapshot: AccessTokenSnapshot) => void;
-
-type TimeoutId = ReturnType<typeof globalThis.setTimeout> | number;
-
-type AccessTokenDeamonDependencies = {
-  now: () => number;
-  setTimeout: (callback: () => void, delay: number) => TimeoutId;
-  clearTimeout: (timeoutId: TimeoutId) => void;
-  fetch: typeof globalThis.fetch;
-};
-
-const ACCESS_TOKEN_LIFETIME_MS = 3 * 60 * 1000;
-const RENEWAL_LEAD_TIME_MS = 30 * 1000;
-
-export function createAccessTokenDeamon(
-  dependencyOverrides: Partial<AccessTokenDeamonDependencies> = {},
-) {
-  const dependencies: AccessTokenDeamonDependencies = {
-    now: () => Date.now(),
-    setTimeout: (callback, delay) => globalThis.setTimeout(callback, delay),
-    clearTimeout: (timeoutId) => globalThis.clearTimeout(timeoutId),
-    fetch: globalThis.fetch.bind(globalThis),
-    ...dependencyOverrides,
-  };
-
+export const AccessTokenDeamon = (() => {
+  let subscribers: ((token: string | null) => void)[] = [];
+  let running_state: "running" | "stopped" | "paused" = "stopped";
   let access_token: string | null = null;
-  let expires_at = 0;
-  let isRunning = false;
-  let renewAccessToken: RenewAccessToken | null = null;
-  let timeoutId: TimeoutId | null = null;
-  const listeners = new Set<AccessTokenListener>();
+  let renews_at: number = 0;
+  let renewal_timer: ReturnType<typeof setTimeout> | null = null;
+  let renew_in_flight: Promise<string | null> | null = null;
 
-  function snapshot(): AccessTokenSnapshot {
-    return { access_token, expires_at };
+  function notify_subscribers(token: string | null) {
+    subscribers.forEach((callback) => {
+      try {
+        callback(token);
+      } catch (error) {
+        // Ignore subscriber callback failures
+        console.error(error);
+      }
+    });
   }
 
-  function notifyListeners() {
-    const currentSnapshot = snapshot();
-    listeners.forEach((listener) => listener(currentSnapshot));
-  }
-
-  function clearRenewalTimeout() {
-    if (timeoutId !== null) {
-      dependencies.clearTimeout(timeoutId);
-      timeoutId = null;
+  function clear_renewal_timer() {
+    if (renewal_timer !== null) {
+      clearTimeout(renewal_timer);
+      renewal_timer = null;
     }
   }
 
-  async function renew(): Promise<string | number> {
-    if (!renewAccessToken) {
-      throw new Error("Access token daemon has not been started.");
-    }
+  // renew the access token
+  async function renew() {
+    if (renew_in_flight) return renew_in_flight;
 
-    return renewAccessToken();
+    renew_in_flight = (async () => {
+      const token = await renewAccessToken();
+      if (typeof token !== "string") {
+        return null;
+      }
+
+      access_token = token;
+      renews_at = Date.now() + 2.5 * 60 * 1000; // Token expiry in 3 min, renew 30 seconds before
+      notify_subscribers(token);
+      return token;
+    })();
+
+    try {
+      return await renew_in_flight;
+    } finally {
+      renew_in_flight = null;
+    }
   }
 
-  function scheduleRenewal() {
-    clearRenewalTimeout();
+  // Schedules renewal of the access token based on its renewal time
+  async function schedule_renewal() {
+    if (running_state !== "running") return;
 
-    if (!isRunning || !access_token || !expires_at) {
-      return;
-    }
+    clear_renewal_timer();
+    const delay = Math.max(renews_at - Date.now(), 0);
 
-    const delay = Math.max(
-      expires_at - dependencies.now() - RENEWAL_LEAD_TIME_MS,
-      0,
-    );
+    renewal_timer = setTimeout(async () => {
+      if (running_state !== "running") return;
 
-    timeoutId = dependencies.setTimeout(() => {
-      timeoutId = null;
-      void renew().catch((error) => {
-        console.error("Scheduled access token renewal failed:", error);
-      });
+      try {
+        await renew();
+      } finally {
+        await schedule_renewal();
+      }
     }, delay);
   }
 
-  function update(
-    nextAccessToken: string | null,
-    nextExpiresAt = nextAccessToken
-      ? dependencies.now() + ACCESS_TOKEN_LIFETIME_MS
-      : 0,
-  ) {
-    access_token = nextAccessToken;
-    expires_at = nextExpiresAt;
-    scheduleRenewal();
-    notifyListeners();
-  }
-
-  async function getFreshAccessToken(): Promise<string> {
-    if (access_token && expires_at > dependencies.now()) {
-      return access_token;
-    }
-
-    const renewalResult = await renew();
-    if (typeof renewalResult !== "string") {
-      throw new Error(
-        `Unable to renew access token. Server responded with status ${renewalResult}.`,
-      );
-    }
-
-    return renewalResult;
-  }
-
-  async function fetchWithAccessToken(
-    input: RequestInfo | URL,
-    init?: RequestInit,
-  ): Promise<Response> {
-    const request = new Request(input, init);
-
-    const sendRequest = async (token: string) => {
-      const headers = new Headers(request.headers);
-      headers.set("Authorization", `Bearer ${token}`);
-
-      return dependencies.fetch(
-        new Request(request.clone(), {
-          headers,
-        }),
-      );
-    };
-
-    const initialToken = await getFreshAccessToken();
-    const response = await sendRequest(initialToken);
-
-    if (response.status !== 400) {
-      return response;
-    }
-
-    const renewalResult = await renew();
-    if (typeof renewalResult !== "string") {
-      return response;
-    }
-
-    return sendRequest(renewalResult);
-  }
-
   return {
-    start(renewalCallback: RenewAccessToken) {
-      renewAccessToken = renewalCallback;
-      isRunning = true;
-      scheduleRenewal();
-    },
-    stop() {
-      isRunning = false;
-      renewAccessToken = null;
-      clearRenewalTimeout();
-    },
-    update,
-    subscribe(listener: AccessTokenListener) {
-      listeners.add(listener);
-      listener(snapshot());
+    fetch: async (url: string, options?: RequestInit) => {
+      if (!access_token || renews_at <= Date.now()) {
+        await renew();
+      }
+      console.log(access_token);
 
-      return () => {
-        listeners.delete(listener);
+      const fetch_with_auth_header = async (): Promise<Response> => {
+        const headers = new Headers(options?.headers || {});
+        if (access_token) {
+          headers.set("Authorization", `Bearer ${access_token}`);
+        }
+        headers.entries().forEach(([key, value]) => {
+          console.log(`${key}: ${value}`);
+        });
+
+        return fetch(url, {
+          ...options,
+          headers,
+        });
       };
-    },
-    fetch: fetchWithAccessToken,
-  };
-}
 
-export const AccessTokenDeamon = createAccessTokenDeamon();
+      let request = await fetch_with_auth_header();
+      if (request.status === 401) {
+        await renew();
+        const retry_request = await fetch_with_auth_header();
+        if (retry_request.status === 401)
+          throw new Error(
+            "Unauthorized after retrying with renewed access token",
+          );
+        request = retry_request;
+      }
+      return request;
+    },
+    start: async () => {
+      if (running_state === "running") return;
+
+      running_state = "running";
+
+      if (!access_token || renews_at <= Date.now()) {
+        await renew();
+      }
+
+      await schedule_renewal();
+    },
+    stop: async () => {
+      running_state = "stopped";
+      clear_renewal_timer();
+    },
+    pause: async () => {
+      running_state = "paused";
+      clear_renewal_timer();
+    },
+    subscribe: (callback: (token: string | null) => void) => {
+      // Immediately invoke the callback with the current access token
+      subscribers.push(callback);
+      try {
+        callback(access_token);
+      } catch {
+        // Ignore subscriber callback failures
+      }
+      return true;
+    },
+    unsubscribe: (callback: (token: string | null) => void) => {
+      subscribers = subscribers.filter((sub) => sub !== callback);
+      return true;
+    },
+  };
+})();
