@@ -32,6 +32,13 @@ jobs:
 
       - name: Set up test services
         run: ./test.containers.setup.sh
+        
+      - name: Wait for MongoDB
+        run: |
+          until docker compose -f tests/docker-compose.yaml exec -T mongodb mongosh --username "$MONGO_USER" --password "$MONGO_PASS" --authenticationDatabase admin --eval "db.adminCommand('ping')" --quiet; do
+            echo "Waiting for MongoDB to accept connections..."
+            sleep 3
+          done
 
       - name: Wait for MySQL
         run: |
