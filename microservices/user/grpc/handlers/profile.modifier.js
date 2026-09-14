@@ -30,7 +30,7 @@ export async function UserProfileModifierHandler(call, callback) {
     } else {
       const profileCollection =
         await Database.getMongoConnection("user_profiles");
-      rows_affected = await ProfileRepository.patchConfig(
+      rows_affected = await ProfileRepository.configure(
         user_id,
         config.values,
         profileCollection,
