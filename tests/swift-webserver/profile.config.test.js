@@ -1,9 +1,7 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { fork } from "node:child_process";
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import sharp from "sharp";
 import { Database } from "../../microservices/user/db.js";
 import { CredentialsRepository } from "../../microservices/user/credentials/repository.js";
 import { ProfileRepository } from "../../microservices/user/profile/repository.js";
@@ -13,31 +11,19 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const grpcPort = "50062";
 const grpcHealthPort = "3014";
 const webPort = "3013";
-const profileUploadPath = path.resolve(__dirname, "profile.upload.jpg");
-const uploadedImage = await readFile(profileUploadPath);
-const nonSquareImage = await sharp({
-  create: {
-    width: 76,
-    height: 60,
-    channels: 3,
-    background: { r: 128, g: 0, b: 128 },
-  },
-})
-  .jpeg()
-  .toBuffer();
 
 let grpcServerProcess;
 let webServerProcess;
 let mysqlConnection;
+let profileCollection;
 let ownerId;
 let viewerId;
 let ownerAccessToken;
-let viewerAccessToken;
-let storedFilename;
 
-describe("profile setup routes", () => {
+describe("profile configure routes", () => {
   beforeAll(async () => {
     mysqlConnection = await Database.getSQLConnection();
+    profileCollection = await Database.getMongoConnection("user_profiles");
     ownerId = await createUserWithProfile("Owner");
     viewerId = await createUserWithProfile("Viewer");
 
@@ -47,12 +33,6 @@ describe("profile setup routes", () => {
       expiresAt,
       process.env.JWT_ACCESSS_TOKEN_PRIVATE_KEY,
     );
-    viewerAccessToken = await JWTHelper.sign(
-      { user_id: viewerId },
-      expiresAt,
-      process.env.JWT_ACCESSS_TOKEN_PRIVATE_KEY,
-    );
-
     grpcServerProcess = fork(
       path.resolve(__dirname, "../../microservices/user/grpc/index.js"),
       [],
@@ -86,10 +66,19 @@ describe("profile setup routes", () => {
     await waitForReady(webServerProcess, "Swift web server");
   }, 20000);
 
+  afterEach(async () => {
+    await profileCollection.deleteMany({
+      profile: { $in: [String(ownerId), String(viewerId)] },
+    });
+  });
+
   afterAll(async () => {
     webServerProcess?.kill("SIGTERM");
     grpcServerProcess?.kill("SIGTERM");
 
+    await profileCollection.deleteMany({
+      profile: { $in: [String(ownerId), String(viewerId)] },
+    });
     await mysqlConnection.execute(
       "DELETE FROM user_profiles WHERE user_id IN (?, ?)",
       [ownerId, viewerId],
@@ -98,85 +87,78 @@ describe("profile setup routes", () => {
       "DELETE FROM user_authentication WHERE id IN (?, ?)",
       [ownerId, viewerId],
     );
-    // mysqlConnection.();
+    mysqlConnection.release();
   });
 
-  it("uploads profile data ", async () => {
-    const form = new FormData();
-    form.append("lastseen", new Date().toISOString());
-
-    const updateResponse = await fetch(
+  it("stores a non-default profile setting in MongoDB", async () => {
+    const response = await fetch(
       `http://localhost:${webPort}/api/profile/configure`,
       {
         method: "PUT",
-        headers: { authorization: "Bearer " + ownerAccessToken },
-        body: form,
+        headers: {
+          authorization: "Bearer " + ownerAccessToken,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ online: "nobody" }),
       },
     );
-    const updateResponseBody = await updateResponse.text();
-    expect(updateResponse.status, updateResponseBody).toBe(200);
+    const responseBody = await response.json();
 
-    const [[profile]] = await mysqlConnection.execute(
-      "SELECT bio, profile_picture FROM user_profiles WHERE user_id = ?",
-      [ownerId],
-    );
-    storedFilename = profile.profile_picture;
-
-    expect(profile.bio).toBe(null);
-    expect(storedFilename).toMatch(
-      /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z-[0-9a-f-]+\.jpg$/,
-    );
-
-    const ownerPictureResponse = await fetch(
-      `http://localhost:${webPort}/api/profile/${ownerId}/picture`,
-      { headers: { authorization: `Bearer ${ownerAccessToken}` } },
-    );
-    expect(ownerPictureResponse.status).toBe(200);
-    expect(ownerPictureResponse.headers.get("content-type")).toContain(
-      "image/jpeg",
-    );
-    const storedImage = Buffer.from(await ownerPictureResponse.arrayBuffer());
-    await expect(sharp(storedImage).metadata()).resolves.toMatchObject({
-      format: "jpeg",
-      width: 500,
-      height: 500,
+    expect(response.status, JSON.stringify(responseBody)).toBe(200);
+    expect(responseBody).toEqual({
+      message: "Profile was successfully updated",
     });
 
-    const viewerPictureResponse = await fetch(
-      `http://localhost:${webPort}/api/profile/${ownerId}/picture`,
-      { headers: { authorization: `Bearer ${viewerAccessToken}` } },
-    );
-    expect(viewerPictureResponse.status).toBe(200);
-    expect(Buffer.from(await viewerPictureResponse.arrayBuffer())).toEqual(
-      storedImage,
-    );
+    const profileConfig = await profileCollection.findOne({
+      profile: String(ownerId),
+    });
+    expect(profileConfig).toMatchObject({
+      profile: String(ownerId),
+      settings: { online: "nobody" },
+    });
   });
 
-  it("rejects a non-square JPEG profile picture", async () => {
-    const form = new FormData();
-    form.append(
-      "profile_picture",
-      new Blob([nonSquareImage], { type: "image/jpeg" }),
-      "non-square.jpg",
-    );
-
-    const response = await fetch(
-      `http://localhost:${webPort}/api/profile/picture-upload`,
+  it("removes the MongoDB override when the config is reset to default", async () => {
+    const setResponse = await fetch(
+      `http://localhost:${webPort}/api/profile/configure`,
       {
-        method: "POST",
-        /*
-        headers: { authorization: `****** },
-        body: form,
-        */
-        headers: { authorization: "Bearer " + ownerAccessToken },
-        body: form,
+        method: "PUT",
+        headers: {
+          authorization: "Bearer " + ownerAccessToken,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ online: "nobody" }),
       },
     );
+    expect(setResponse.status).toBe(200);
 
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
-      error: "Profile picture must be square.",
+    const storedConfig = await profileCollection.findOne({
+      profile: String(ownerId),
     });
+    expect(storedConfig?.settings?.online).toBe("nobody");
+
+    const resetResponse = await fetch(
+      `http://localhost:${webPort}/api/profile/configure`,
+      {
+        method: "PUT",
+        headers: {
+          authorization: "Bearer " + ownerAccessToken,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ online: "contacts" }),
+      },
+    );
+    const resetResponseBody = await resetResponse.json();
+
+    expect(resetResponse.status, JSON.stringify(resetResponseBody)).toBe(200);
+    expect(resetResponseBody).toEqual({
+      message: "Profile was successfully updated",
+    });
+
+    const profileConfig = await profileCollection.findOne({
+      profile: String(ownerId),
+    });
+    expect(profileConfig?.settings?.online).toBeUndefined();
   });
 });
 
