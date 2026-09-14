@@ -98,7 +98,7 @@ export const ProfileRepository = (() => {
       }
 
       return await mongo_connection.updateOne(
-        { profile: profile_id },
+        { profile: String(profile_id) },
         updateDoc,
         { upsert: true },
       );
@@ -111,12 +111,12 @@ export const ProfileRepository = (() => {
      * @param {Object} mongo_connection - Active MongoDB collection/connection reference.
      * @returns {Promise<Object>} The resolved profile configuration object.
      */
-    // getConfig: async (profile_id, mongo_connection) => {
-    //   const doc = await mongo_connection.findOne({ profile: profile_id });
-    //   return {
-    //     ...defualt_profile_config,
-    //     ...(doc ? doc.settings || {} : {}),
-    //   };
-    // },
+    getConfig: async (profile_id, mongo_connection) => {
+      const doc = await mongo_connection.findOne({ profile: String(profile_id) });
+      return {
+        ...defualt_profile_config,
+        ...(doc?.settings || {}),
+      };
+    },
   };
 })();
