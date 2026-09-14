@@ -6,7 +6,25 @@ export async function UserProfileModifierHandler(call, callback) {
   let transactionStarted = false;
 
   try {
-    const { primary_config, config, user_id } = call.request;
+    const { primary_config, config, user_id, method } = call.request;
+    const normalizedMethod = method?.toLowerCase();
+
+    if (normalizedMethod === "get") {
+      const profileCollection =
+        await Database.getMongoConnection("user_profiles");
+      const resolvedConfig = await ProfileRepository.getConfig(
+        user_id,
+        profileCollection,
+      );
+
+      return callback(null, {
+        message: "Profile configuration retrieved successfully",
+        success: true,
+        config: resolvedConfig,
+        method: "get",
+      });
+    }
+
     const mode = primary_config ? "primary" : config ? "secondary" : null;
     if (!mode) {
       return callback(null, {
@@ -30,7 +48,7 @@ export async function UserProfileModifierHandler(call, callback) {
     } else {
       const profileCollection =
         await Database.getMongoConnection("user_profiles");
-      rows_affected = await ProfileRepository.patchConfig(
+      rows_affected = await ProfileRepository.configure(
         user_id,
         config.values,
         profileCollection,
@@ -42,6 +60,7 @@ export async function UserProfileModifierHandler(call, callback) {
         ? "Profile was successfully updated"
         : "No changes were made",
       success: rows_affected,
+      method: "update",
     });
   } catch (error) {
     try {

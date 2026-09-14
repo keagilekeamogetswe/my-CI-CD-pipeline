@@ -36,7 +36,8 @@ export const UserProfileModifierGRPCClient = (() => {
 
   return {
     /**
-     * Updates either the primary SQL profile fields or secondary profile configuration.
+     * Updates either the primary SQL profile fields or secondary profile configuration,
+     * or retrieves resolved configuration via method="get".
      * @param {Object} input
      * @param {string|number} input.user_id
      * @param {Object} [input.primaryConfig]
@@ -45,11 +46,15 @@ export const UserProfileModifierGRPCClient = (() => {
      * @param {number} [options.timeoutMs=5000]
      * @returns {Promise<{success: boolean, message: string}>}
      */
-    async ModifyProfile({ user_id, primaryConfig, config } = {}, options = {}) {
+    async ModifyProfile(
+      { user_id, primaryConfig, config, method } = {},
+      options = {},
+    ) {
       if (!user_id) {
         throw new Error("Missing required field: user_id.");
       }
 
+      const normalizedMethod = method?.toLowerCase();
       const isNonEmptyObject = (value) =>
         Boolean(
           value &&
@@ -60,7 +65,13 @@ export const UserProfileModifierGRPCClient = (() => {
       const hasPrimaryConfig = isNonEmptyObject(primaryConfig);
       const hasConfig = isNonEmptyObject(config);
 
-      if (Number(hasPrimaryConfig) + Number(hasConfig) !== 1) {
+      if (normalizedMethod === "get") {
+        if (hasPrimaryConfig || hasConfig) {
+          throw new Error(
+            'Do not provide primaryConfig or config when method is "get".',
+          );
+        }
+      } else if (Number(hasPrimaryConfig) + Number(hasConfig) !== 1) {
         throw new Error(
           "Provide exactly one non-empty update: primaryConfig or config.",
         );
@@ -68,9 +79,12 @@ export const UserProfileModifierGRPCClient = (() => {
 
       const requestPayload = {
         user_id: String(user_id),
+        ...(normalizedMethod ? { method: normalizedMethod } : {}),
         ...(hasPrimaryConfig
           ? { primary_config: { values: primaryConfig } }
-          : { config: { values: config } }),
+          : hasConfig
+            ? { config: { values: config } }
+            : {}),
       };
       const deadline = new Date(Date.now() + (options.timeoutMs || 5000));
 
@@ -88,6 +102,14 @@ export const UserProfileModifierGRPCClient = (() => {
           resolve(response);
         });
       });
+    },
+
+    async GetProfileConfig({ user_id } = {}, options = {}) {
+      const response = await this.ModifyProfile(
+        { user_id, method: "get" },
+        options,
+      );
+      return response.config;
     },
 
     close() {

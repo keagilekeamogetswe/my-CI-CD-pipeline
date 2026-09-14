@@ -21,6 +21,7 @@ service ProfileModification {
 
 message ProfileModificationRequest {
   string user_id = 1;
+  string method = 4;
 
   oneof update {
     ProfilePrimaryConfig primary_config = 2;
@@ -39,6 +40,8 @@ message ProfileSecondaryConfig {
 message ProfileModificationResponse {
   bool success = 1;
   string message = 2;
+  map<string, string> config = 3;
+  string method = 4;
 }
 
 message RenewAccessTokenReq {

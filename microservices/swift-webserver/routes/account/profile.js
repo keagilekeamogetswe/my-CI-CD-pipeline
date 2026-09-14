@@ -4,6 +4,7 @@ import {
   UploadProfilePictureValidator,
   UploadProfilePicture,
 } from "./profile/controller/post.profile.pic";
+import { ConfigProfile } from "./profile/controller/configure.profile";
 const ProfileRouter = express.Router();
 ProfileRouter.get("/:userId/picture", ViewProfilePicture);
 ProfileRouter.post(
@@ -11,5 +12,6 @@ ProfileRouter.post(
   UploadProfilePictureValidator,
   UploadProfilePicture,
 );
+ProfileRouter.put("/configure", ConfigProfile);
 
 export default ProfileRouter;
