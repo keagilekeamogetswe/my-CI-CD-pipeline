@@ -11,11 +11,11 @@ export async function ConfigProfile(req, res) {
   ) {
     return res.status(400).json({ message: "Bad request" });
   }
-  const primaryConfig = req.body;
+  const config = req.body;
   const user_id = req.user.user_id;
   const response = await UserProfileModifierGRPCClient.ModifyProfile({
     user_id: user_id,
-    primaryConfig,
+    config,
   });
   res.status(response.success ? 200 : 400).json({ message: response.message });
 }

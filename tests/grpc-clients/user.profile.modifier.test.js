@@ -87,9 +87,9 @@ describe("UserProfileModifierGRPCClient", () => {
         "DELETE FROM user_authentication WHERE id = ?",
         [user_id],
       );
-      await profileCollection.deleteMany({ user: String(user_id) });
+      await profileCollection.deleteMany({ profile: String(user_id) });
     } finally {
-      // mysqlConnection.release();
+      mysqlConnection.release();
     }
   });
 
@@ -111,6 +111,8 @@ describe("UserProfileModifierGRPCClient", () => {
     ).resolves.toEqual({
       success: true,
       message: "Profile was successfully updated",
+      config: {},
+      method: "update",
     });
 
     const [[profile]] = await mysqlConnection.execute(
@@ -138,22 +140,68 @@ describe("UserProfileModifierGRPCClient", () => {
       profileModifierClient.ModifyProfile({
         user_id: user_id,
         config: {
-          online: "contacts",
-          theme: "dark",
+          online: "nobody",
+          about: "contacts",
         },
       }),
     ).resolves.toEqual({
       success: true,
       message: "Profile was successfully updated",
+      config: {},
+      method: "update",
     });
 
     const profileConfig = await profileCollection.findOne({
-      user: String(user_id),
+      profile: String(user_id),
     });
 
     expect(profileConfig.settings).toEqual({
+      online: "nobody",
+      about: "contacts",
+    });
+  });
+
+  it("gets profile configuration merged with defaults through the same gRPC client", async () => {
+    await profileCollection.updateOne(
+      { profile: String(user_id) },
+      { $set: { "settings.online": "nobody" } },
+      { upsert: true },
+    );
+
+    await expect(
+      profileModifierClient.ModifyProfile({
+        user_id,
+        method: "get",
+      }),
+    ).resolves.toEqual({
+      success: true,
+      message: "Profile configuration retrieved successfully",
+      config: {
+        lastseen: "contacts",
+        profile_picture: "everyone",
+        about: "everyone",
+        online: "nobody",
+      },
+      method: "get",
+    });
+  });
+
+  it("exposes a get helper without creating another gRPC client", async () => {
+    await profileCollection.updateOne(
+      { profile: String(user_id) },
+      { $set: { "settings.about": "contacts" } },
+      { upsert: true },
+    );
+
+    await expect(
+      profileModifierClient.GetProfileConfig({
+        user_id,
+      }),
+    ).resolves.toEqual({
+      lastseen: "contacts",
+      profile_picture: "everyone",
+      about: "contacts",
       online: "contacts",
-      theme: "dark",
     });
   });
 
