@@ -160,6 +160,37 @@ describe("profile configure routes", () => {
     });
     expect(profileConfig?.settings?.online).toBeUndefined();
   });
+  it("should get config using url", async () => {
+    // First, set the profile config to "contacts" to ensure the GET request retrieves it
+    const resetResponse = await fetch(
+      `http://localhost:${webPort}/api/profile/configure`,
+      {
+        method: "PUT",
+        headers: {
+          authorization: "Bearer " + ownerAccessToken,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ online: "everyone" }),
+      },
+    );
+    const resetResponseBody = await resetResponse.json();
+
+    expect(resetResponse.status, JSON.stringify(resetResponseBody)).toBe(200);
+    const response = await fetch(
+      `http://localhost:${webPort}/api/profile/configure`,
+      {
+        method: "GET",
+        headers: {
+          authorization: "Bearer " + ownerAccessToken,
+          "content-type": "application/json",
+        },
+      },
+    );
+    const responseBody = await response.json();
+    expect(response.status).toBe(200);
+    console.log("GET /api/profile/configure response: ", responseBody);
+    expect(responseBody.config?.online).toEqual("everyone");
+  });
 });
 
 async function createUserWithProfile(name) {
