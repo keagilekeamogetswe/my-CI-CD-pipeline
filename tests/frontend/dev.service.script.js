@@ -14,7 +14,7 @@ for (const key in envConfig) {
   process.env[key] = envConfig[key];
 }
 
-const PORT = "3002";
+const PORT = process.env.PORT || "3002";
 const GRPC_PORT = "50051";
 
 // Both forked services run on the host during tests, not on the Docker network.

@@ -2,19 +2,16 @@
 
 set -e
 
-echo "Starting Express backend in the background..."
+WEB_SERVER_PORT="${PORT:-3002}"
+
+echo "Starting Express webserver and backend in the background..."
 npm run frontend-test-services &
 
-echo "Waiting for backend to respond on port 3002..."
-until nc -z localhost 3002 2>/dev/null || curl -s http://localhost:3002 >/dev/null; do
+echo "Waiting for webserver to respond on port ${WEB_SERVER_PORT}..."
+until nc -z localhost "${WEB_SERVER_PORT}" 2>/dev/null || curl -s "http://localhost:${WEB_SERVER_PORT}" >/dev/null; do
   sleep 1
 done
 
-echo "Backend is up on port 3002!"
-echo "Starting Next.js frontend in the background..."
-
-cd frontend/swift/website
-npm run dev &
-
-echo "All services launched successfully in the background!"
+echo "Webserver is up on port ${WEB_SERVER_PORT}!"
+echo "Static frontend assets are being served by swift-webserver."
 exit 0
