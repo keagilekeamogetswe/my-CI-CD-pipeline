@@ -2,11 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { Icon } from "./icon.repository";
-import {
-  getViewPath,
-  navItems,
-  type ViewName,
-} from "./(views)/view.register";
+import { getViewPath, navItems, type ViewName } from "./(views)/view.register";
 
 function useViewNavigation() {
   const pathname = usePathname();

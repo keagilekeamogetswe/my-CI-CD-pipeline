@@ -278,7 +278,7 @@ export default function OwnProfilePage({
 
               <button
                 type="button"
-                onClick={() => router.push("/settings")}
+                onClick={() => router.push("/profile/settings")}
                 className="h-9 px-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 rounded-xl text-xs font-medium transition-colors cursor-pointer border border-neutral-200/60"
                 title="Account Settings"
               >

@@ -173,7 +173,7 @@ export default function PublicProfilePage({
               {/* Direct Message Button */}
               <button
                 type="button"
-                onClick={() => router.push(`/chats?user=${profile.id}`)}
+                onClick={() => router.push(`/chats/message/${profile.id}/`)}
                 className="h-9 px-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 rounded-xl text-xs font-medium transition-colors cursor-pointer border border-neutral-200/60"
                 title="Message"
               >
