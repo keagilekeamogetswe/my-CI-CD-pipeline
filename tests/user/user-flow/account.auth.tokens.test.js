@@ -51,14 +51,45 @@ describe("Account authentication token tests", () => {
     expect(session.user_id).toBe(user_id);
     expect(session.device_info).toBe(payload.device_info);
     expect(session.ip_address).toBe(payload.ip_address);
-    expect(await argon2.verify(session.fp_hash, payload.finger_print)).toBe(true);
+    expect(await argon2.verify(session.fp_hash, payload.finger_print)).toBe(
+      true,
+    );
     expect(await argon2.verify(session.token_hash, refresh_token)).toBe(true);
+  });
+  it("renew access token successfully", async () => {
+    const old_refresh_token = await AccountAuthToken.refresh.create(
+      { ...payload, user_id },
+      mysql_connection,
+    );
+
+    const { access_token, refresh_token } = await AccountAuthToken.access.renew(
+      old_refresh_token,
+      mysql_connection,
+    );
+    console.log({ access_token, refresh_token });
+    const payload_decoded = await JWTHelper.verify(
+      access_token,
+      process.env.JWT_ACCESSS_TOKEN_PUBLIC_KEY,
+    );
+    const old_refresh_payload = await JWTHelper.decode(
+      old_refresh_token,
+      process.env.JWT_AUTH_REFRESH_TOKEN_SECRET,
+    );
+    console.log(payload_decoded);
+    expect(payload_decoded.payload).toBeDefined();
+    expect(payload_decoded.payload.user_id).toBe(
+      old_refresh_payload.payload.user_id,
+    );
   });
 
   it("rejects a refresh-token payload with a required field missing", async () => {
     await expect(
       AccountAuthToken.refresh.create(
-        { user_id, device_info: payload.device_info, ip_address: payload.ip_address },
+        {
+          user_id,
+          device_info: payload.device_info,
+          ip_address: payload.ip_address,
+        },
         mysql_connection,
       ),
     ).rejects.toThrow("Required field missing: finger_print");
