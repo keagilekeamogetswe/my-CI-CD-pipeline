@@ -1,22 +1,16 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { LoadingSplashScreen } from "@/app/splash";
 import StartPage from "@/app/(entry)/start/page";
 import { AccessTokenDeamon } from "@/providers/access-token.deamon";
-
-type AuthContextValue = {
-  access_token: string | null;
-  expires_at: number;
-  isLoading: boolean;
-};
-
-const AuthContext = createContext<AuthContextValue>({
-  access_token: null,
-  expires_at: 0,
-  isLoading: true,
-});
 
 // Determines if the current path allows unauthenticated access (e.g., login or onboarding).
 export function useIsPublicRoute() {
@@ -29,7 +23,7 @@ export function useIsPublicRoute() {
 
 // Global promise cache to deduplicate concurrent token renewal requests.
 
-export function AuthContextProvider({
+export default function AuthMiddleware({
   children,
 }: {
   children: React.ReactNode;
@@ -37,91 +31,75 @@ export function AuthContextProvider({
   const router = useRouter();
   const pathname = usePathname();
   const isPublicRoute = useIsPublicRoute();
-  const [access_token, setAccessToken] = useState<string | null>(null);
-  const [expires_at, setExpiresAt] = useState<number>(0);
-  const [access_token_has_error, setAccessTokenHasError] = useState<
-    true | false
-  >(false);
-  const [checkedPathname, setCheckedPathname] = useState<string | null>(null);
-  const isLoading = !isPublicRoute && checkedPathname !== pathname;
+  const [access_token, setAccessToken] = useState<string | null | undefined>(
+    undefined,
+  );
 
   // Keep React state synchronized with daemon renewals for the provider lifetime.
+  const [isLoading, setIsLoading] = useState(true);
+  const isInitialized = useRef(false);
+  const redirected_start = useRef(false);
+  const [unauthorised, setUnauthorised] = useState<boolean | null>(null);
+
   useEffect(() => {
-    let isMounted = true;
-    const unsubscribe = AccessTokenDeamon.subscribe((tokenState) => {
-      if (!isMounted) return;
-      AccessTokenDeamon.subscribe(setAccessToken);
-    });
-
-    AccessTokenDeamon.start();
-
-    return () => {
-      isMounted = false;
-      AccessTokenDeamon.unsubscribe(setAccessToken);
-      AccessTokenDeamon.stop();
-    };
+    if (isInitialized.current) {
+      return;
+    }
+    setIsLoading(true);
   }, []);
 
-  // Re-check authentication whenever navigation enters a protected route.
   useEffect(() => {
-    if (isPublicRoute) {
-      const resetId = setTimeout(() => setCheckedPathname(null), 0);
-      return () => clearTimeout(resetId);
-    }
-
-    if (!pathname) {
+    AccessTokenDeamon.subscribe(setAccessToken);
+    AccessTokenDeamon.start();
+    AccessTokenDeamon.setUnauthorizedCallback(setUnauthorised);
+    isInitialized.current = true;
+    return () => {
+      AccessTokenDeamon.unsubscribe(setAccessToken);
+    };
+  });
+  useEffect(() => {
+    // Do not set loading if navigating to a public route
+    if (pathname.match(/\/start/)) {
+      setIsLoading(false);
       return;
     }
 
-    let isCurrentCheck = true;
-
-    (async () => {
-      try {
-        //The deamon should set the access token;
-        if (!isCurrentCheck) return;
-
-        if (access_token === null) {
-          setAccessTokenHasError(true);
-        } else {
-          setAccessTokenHasError(false);
-        }
-      } finally {
-        if (isCurrentCheck) {
-          setCheckedPathname(pathname);
-        }
-      }
-    })();
-
-    return () => {
-      isCurrentCheck = false;
-    };
-  }, [isPublicRoute, pathname]);
-
-  // Redirect unauthenticated users attempting to access protected routes
-  useEffect(() => {
-    if (!isLoading && !access_token && !isPublicRoute) {
-      const query = access_token_has_error ? `?redirected_with=401` : "";
-      router.replace(`/start${query}`);
+    // Only trigger loading if we truly do not have a token decision yet
+    if (!access_token) {
+      setIsLoading(true);
     }
-  }, [isLoading, access_token, isPublicRoute, access_token_has_error, router]);
+  }, [pathname, access_token, unauthorised]);
+  useEffect(() => {
+    if (unauthorised) {
+      console.log("User is unauthorized");
+      setIsLoading(false);
+      AccessTokenDeamon.stop();
+    } else {
+      if (unauthorised == false) setIsLoading(false);
+      redirected_start.current = false;
+      AccessTokenDeamon.start();
+    }
+  }, [unauthorised]);
 
-  // Route protection UI: display loading splash screen or fallback entry page on protected routes
-  let child_to_render: React.ReactNode = children;
-  if (isLoading && !isPublicRoute) {
-    child_to_render = React.createElement(LoadingSplashScreen);
-  } else if (!isPublicRoute && !access_token) {
-    child_to_render = React.createElement(StartPage);
+  // Only runs when loading state changes
+  useEffect(() => {
+    if (access_token) {
+      redirected_start.current = false;
+      setIsLoading(false);
+    } else {
+      redirected_start.current = true;
+    }
+  }, [access_token]);
+
+  if (isLoading) return React.createElement(LoadingSplashScreen);
+  if (isPublicRoute) {
+    return children;
+  }
+  if (redirected_start.current) {
+    // Only updates the url, this does not cause any component render
+    // window.history.replaceState(null, "", "/start");
+    return React.createElement(StartPage);
   }
 
-  return React.createElement(
-    AuthContext.Provider,
-    {
-      value: { access_token, expires_at, isLoading },
-    },
-    child_to_render,
-  );
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
+  return children;
 }
