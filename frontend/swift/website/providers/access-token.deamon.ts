@@ -1,3 +1,4 @@
+import { unauthorized } from "next/navigation";
 import { renewAccessToken } from "./renew.method";
 
 export const AccessTokenDeamon = (() => {
@@ -12,7 +13,9 @@ export const AccessTokenDeamon = (() => {
   let retry_count = 0;
   const INITIAL_RETRY_DELAY = 1000; // 1 second
   const MAX_RETRY_DELAY = 30000; // Cap at 30 seconds max backoff
-
+  // Unauthorise callback
+  let unauthorizedCallback: ((state: boolean) => void) | null = null;
+  let accesss_unauth_token_attempts = 0;
   function notify_subscribers(token: string | null) {
     subscribers.forEach((callback) => {
       try {
@@ -54,10 +57,20 @@ export const AccessTokenDeamon = (() => {
 
     renew_in_flight = (async () => {
       try {
+        if (accesss_unauth_token_attempts > 3 && unauthorizedCallback) {
+          unauthorizedCallback(true);
+        }
         const token = await renewAccessToken();
+        if ([400, 402].includes(token as any)) {
+          accesss_unauth_token_attempts++;
+        }
         if (typeof token !== "string") {
+          notify_subscribers(null);
           return null;
         }
+        accesss_unauth_token_attempts = 0;
+        if (unauthorizedCallback) unauthorizedCallback(false);
+        AccessTokenDeamon.start();
 
         access_token = token;
         renews_at = Date.now() + 2.5 * 60 * 1000; // Token expiry in 3 min, renew 30s before
@@ -127,8 +140,10 @@ export const AccessTokenDeamon = (() => {
       window.removeEventListener("online", handle_online);
     }
   }
-
   return {
+    setUnauthorizedCallback(callback: (state: boolean) => void) {
+      unauthorizedCallback = callback;
+    },
     fetch: async (url: string, options?: RequestInit) => {
       if (!access_token || renews_at <= Date.now()) {
         await renew();
@@ -162,7 +177,6 @@ export const AccessTokenDeamon = (() => {
 
     start: async () => {
       if (running_state === "running") return;
-
       running_state = "running";
       setup_network_listeners();
 
