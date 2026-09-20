@@ -70,7 +70,7 @@ async function submitVerificationStep(page: Page) {
   await page.getByRole("button", { name: /verify|confirm/i }).click();
 }
 
-test.skip("creates a user: phone -> profile -> verification -> refresh_token cookie", async ({
+test("creates a user: phone -> profile -> verification -> refresh_token cookie", async ({
   page,
   context,
 }) => {
