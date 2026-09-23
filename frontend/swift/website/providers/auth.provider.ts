@@ -91,10 +91,10 @@ export default function AuthMiddleware({
     }
   }, [access_token]);
 
-  if (isLoading) return React.createElement(LoadingSplashScreen);
   if (isPublicRoute) {
     return children;
   }
+  if (isLoading) return React.createElement(LoadingSplashScreen);
   if (redirected_start.current) {
     // Only updates the url, this does not cause any component render
     // window.history.replaceState(null, "", "/start");

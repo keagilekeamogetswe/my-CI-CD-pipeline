@@ -13,6 +13,8 @@ import {
 } from "react";
 import { VerificationPayloadStore } from "../../state-management/payload.persistence";
 
+const PROFILE_SETUP_ACCESS_KEY = "swift:profile-setup:verified";
+
 export default function VerifyPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -211,7 +213,8 @@ export default function VerifyPage() {
 
       setIsConfirmed(true);
       VerificationPayloadStore.clear();
-      router.push("/profile-setup");
+      window.sessionStorage.setItem(PROFILE_SETUP_ACCESS_KEY, "true");
+      router.replace("/profile-setup");
     } catch (err) {
       console.error(err);
       setError("An unexpected error occurred during verification.");

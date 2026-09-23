@@ -144,7 +144,7 @@ export default function ChatsView({ children }: { children: React.ReactNode }) {
           className={`absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 rounded-full transition-colors ${
             isResizingSidebar
               ? "bg-neutral-400"
-              : "bg-transparent group-hover:bg-neutral-300"
+              : "bg-neutral-200 group-hover:bg-neutral-300"
           }`}
         />
       </div>
