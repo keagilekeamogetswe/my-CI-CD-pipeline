@@ -29,6 +29,13 @@ export const ProfileRepository = (() => {
       const profile_id = profile_result.insertId;
       return profile_id;
     },
+    getProfile: async (user_id, mysql_connection) => {
+      const [rows] = await mysql_connection.execute(
+        `SELECT * FROM user_profiles WHERE user_id = ?`,
+        [user_id],
+      );
+      return rows[0] || null;
+    },
 
     /**
      * Updates editable fields of an existing user profile in MySQL.
@@ -112,7 +119,9 @@ export const ProfileRepository = (() => {
      * @returns {Promise<Object>} The resolved profile configuration object.
      */
     getConfig: async (profile_id, mongo_connection) => {
-      const doc = await mongo_connection.findOne({ profile: String(profile_id) });
+      const doc = await mongo_connection.findOne({
+        profile: String(profile_id),
+      });
       return {
         ...defualt_profile_config,
         ...(doc?.settings || {}),

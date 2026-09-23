@@ -19,6 +19,30 @@ service ProfileModification {
   rpc ModifyProfile (ProfileModificationRequest) returns (ProfileModificationResponse);
 }
 
+service ProfileViewing {
+  rpc ViewProfile (ProfileViewRequest) returns (ProfileViewResponse);
+}
+
+message ProfileViewRequest {
+  string user_id = 1;
+}
+
+message ProfileViewData {
+  string id = 1;
+  string name = 2;
+  string lastname = 3;
+  string dob = 4;
+  string bio = 5;
+  string phone = 6;
+  string profile_picture = 7;
+}
+
+message ProfileViewResponse {
+  bool success = 1;
+  string message = 2;
+  ProfileViewData data = 3;
+}
+
 message ProfileModificationRequest {
   string user_id = 1;
   string method = 4;
