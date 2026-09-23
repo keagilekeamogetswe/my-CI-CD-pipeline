@@ -1,11 +1,29 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ActivityGallery from "./components/activity.gallery";
 import EventSection from "./components/events";
 import EventExperiencesSection from "./components/experience";
+import { Avatar } from "../../components/avatar";
+import { AccessTokenDeamon } from "@/providers/access-token.deamon";
+import ProfileLoading from "./profile.loading";
+
+interface Profile {
+  id: string;
+  name: string;
+  lastname: string;
+  dob: string;
+  bio: string;
+  phone: string;
+  profile_picture_url: string;
+}
+
+interface ProfileResponse {
+  message: string;
+  data: Profile;
+}
 
 export interface HighlightItem {
   id: string;
@@ -75,12 +93,66 @@ export default function OwnProfilePage({
 
   // Editable Profile States
   const [profile, setProfile] = useState<OwnUserProfile>(initialProfile);
+  const [retrievedProfile, setRetrievedProfile] = useState<Profile | null>(
+    null,
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [bioInput, setBioInput] = useState(profile.bio);
   const [showEditModal, setShowEditModal] = useState(false);
   const [nameInput, setNameInput] = useState(profile.name);
   const [usernameInput, setUsernameInput] = useState(profile.username);
   const [websiteInput, setWebsiteInput] = useState(profile.website_url || "");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadProfile() {
+      try {
+        const response = await AccessTokenDeamon.fetch("/api/profile/view");
+        const body = (await response.json()) as ProfileResponse;
+
+        if (!response.ok) {
+          throw new Error(body.message || "Could not load your profile.");
+        }
+        if (!body.data) {
+          throw new Error("The profile response did not contain profile data.");
+        }
+
+        if (isMounted) {
+          setRetrievedProfile(body.data);
+          setProfile((current) => ({
+            ...current,
+            name: [body.data.name, body.data.lastname]
+              .filter(Boolean)
+              .join(" "),
+            bio: body.data.bio,
+            avatar_url: body.data.profile_picture_url || null,
+          }));
+          setBioInput(body.data.bio);
+          setNameInput(
+            [body.data.name, body.data.lastname].filter(Boolean).join(" "),
+          );
+        }
+      } catch (cause) {
+        if (isMounted) {
+          setError(
+            cause instanceof Error
+              ? cause.message
+              : "Could not load your profile.",
+          );
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    void loadProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // File Upload Handlers (Presentational preview update)
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -136,6 +208,8 @@ export default function OwnProfilePage({
     }));
     setShowEditModal(false);
   };
+
+  if (loading) return <ProfileLoading />;
 
   return (
     <div className="w-full max-w-lg mx-auto py-6 space-y-6">
@@ -204,14 +278,11 @@ export default function OwnProfilePage({
             {/* Avatar with Camera Trigger Overlay */}
             <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full ring-4 ring-white bg-white shadow-md group">
               <div className="w-full h-full rounded-full overflow-hidden bg-neutral-100 flex items-center justify-center relative">
-                {profile.avatar_url ? (
-                  <Image
-                    src={profile.avatar_url}
+                {retrievedProfile?.profile_picture_url ? (
+                  <Avatar
+                    src={retrievedProfile.profile_picture_url}
                     alt={profile.name}
-                    width={112}
-                    height={112}
                     className="w-full h-full object-cover"
-                    unoptimized
                   />
                 ) : (
                   <svg
@@ -434,6 +505,11 @@ export default function OwnProfilePage({
       </div>
 
       {/* Embedded Sub-Sections */}
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
       <ActivityGallery />
       <EventSection />
       <EventExperiencesSection />
