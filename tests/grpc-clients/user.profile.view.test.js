@@ -105,10 +105,10 @@ describe("UserProfileGRPCClient", () => {
         id: expect.any(String),
         name: "Ada",
         lastname: "Lovelace",
-        dob: "1815-12-10",
+        dob: "12-10",
         bio: "",
         phone: "",
-        profile_picture: "",
+        profile_picture_url: `/api/profile/${user_id}/picture`,
       },
     });
   });

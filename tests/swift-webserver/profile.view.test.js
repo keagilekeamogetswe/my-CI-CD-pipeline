@@ -89,9 +89,12 @@ describe("profile view route", () => {
   });
 
   it("returns the authenticated user's profile without the user ID", async () => {
-    const response = await fetch(`http://localhost:${webPort}/api/profile/view`, {
-      headers: { authorization: `Bearer ${accessToken}` },
-    });
+    const response = await fetch(
+      `http://localhost:${webPort}/api/profile/view`,
+      {
+        headers: { authorization: `Bearer ${accessToken}` },
+      },
+    );
     const responseBody = await response.json();
 
     expect(response.status, JSON.stringify(responseBody)).toBe(200);
@@ -101,10 +104,10 @@ describe("profile view route", () => {
         id: expect.any(String),
         name: "Ada",
         lastname: "Lovelace",
-        dob: "1815-12-10",
+        dob: "12-10",
         bio: "",
         phone: "",
-        profile_picture: "",
+        profile_picture_url: `/api/profile/${userId}/picture`,
       },
     });
     expect(responseBody.data).not.toHaveProperty("user_id");

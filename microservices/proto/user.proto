@@ -34,7 +34,7 @@ message ProfileViewData {
   string dob = 4;
   string bio = 5;
   string phone = 6;
-  string profile_picture = 7;
+  string profile_picture_url = 7;
 }
 
 message ProfileViewResponse {
