@@ -89,12 +89,9 @@ test("submits profile data as an authenticated request", async ({
   const code = await readFileContents("./../../../tests/.output/code.txt");
   USER.code = code;
 
-  // 2. Perform verification and wait until redirected away from verify page
+  // 2. Verification should replace the verify route with profile setup.
   await submitVerificationStep(page);
-  await expect(page).not.toHaveURL(/\/start\/verify/);
-
-  // 3. Navigate to profile setup as an authenticated user
-  await page.goto(`${BASE}/profile-setup/`);
+  await expect(page).toHaveURL(/\/profile-setup\/?$/);
 
   // Path to test.profile-pic.jpg located in the tests directory
   const imageFilePath = path.join(__dirname, "test.profile-pic.jpg");

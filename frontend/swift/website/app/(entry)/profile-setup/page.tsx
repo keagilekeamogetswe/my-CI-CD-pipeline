@@ -1,22 +1,36 @@
 "use client";
 
-import Image from "next/image";
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AccessTokenDeamon } from "@/providers/access-token.deamon";
+import { Avatar } from "../../(main)/components/avatar";
 
 const MAX_BIO_LENGTH = 160;
+const PROFILE_SETUP_ACCESS_KEY = "swift:profile-setup:verified";
 
 export default function ProfileSetupPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const hasCheckedAccess = useRef(false);
 
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [bio, setBio] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    if (hasCheckedAccess.current) return;
+    hasCheckedAccess.current = true;
+
+    if (window.sessionStorage.getItem(PROFILE_SETUP_ACCESS_KEY) === "true") {
+      window.sessionStorage.removeItem(PROFILE_SETUP_ACCESS_KEY);
+      setIsAuthorized(true);
+    } else {
+      router.replace("/chats");
+    }
+  }, [router]);
 
   const validateAndProcessFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -31,11 +45,6 @@ export default function ProfileSetupPage() {
 
     setError(null);
     setAvatarFile(file);
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAvatarPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,7 +74,6 @@ export default function ProfileSetupPage() {
   };
 
   const handleRemoveAvatar = () => {
-    setAvatarPreview(null);
     setAvatarFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -73,8 +81,11 @@ export default function ProfileSetupPage() {
   };
 
   const goToNextStep = () => {
-    router.push("/chats");
+    window.sessionStorage.removeItem(PROFILE_SETUP_ACCESS_KEY);
+    router.replace("/chats");
   };
+
+  if (!isAuthorized) return null;
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -162,14 +173,11 @@ export default function ProfileSetupPage() {
               }`}
             >
               <div className="w-full h-full rounded-full border border-neutral-200 overflow-hidden bg-neutral-50 flex items-center justify-center">
-                {avatarPreview ? (
-                  <Image
-                    src={avatarPreview}
+                {avatarFile ? (
+                  <Avatar
+                    src={avatarFile}
                     alt="Profile preview"
-                    width={128}
-                    height={128}
                     className="w-full h-full object-cover"
-                    unoptimized
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center text-neutral-400 group-hover:text-neutral-600 transition-colors">
@@ -209,7 +217,7 @@ export default function ProfileSetupPage() {
                     d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"
                   />
                 </svg>
-                <span>{avatarPreview ? "Change" : "Upload"}</span>
+                <span>{avatarFile ? "Change" : "Upload"}</span>
               </div>
 
               {/* Action Badge */}
@@ -244,9 +252,9 @@ export default function ProfileSetupPage() {
                 onClick={() => fileInputRef.current?.click()}
                 className="text-neutral-900 font-medium hover:underline cursor-pointer"
               >
-                {avatarPreview ? "Choose another photo" : "Upload photo"}
+                {avatarFile ? "Choose another photo" : "Upload photo"}
               </button>
-              {avatarPreview && (
+              {avatarFile && (
                 <>
                   <span className="text-neutral-300">•</span>
                   <button

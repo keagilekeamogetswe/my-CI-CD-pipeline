@@ -5,15 +5,10 @@ import {
   useMemo,
   useEffect,
   useRef,
-  type CSSProperties,
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Avatar } from "../components/avatar";
-
-const MIN_SIDEBAR_WIDTH = 240;
-const MAX_SIDEBAR_WIDTH = 500;
-const DEFAULT_SIDEBAR_WIDTH = 320;
 
 export interface Conversation {
   id: number;
@@ -112,19 +107,9 @@ export function ChatsListView({
   const searchParams = useSearchParams();
   const query = searchParams.get("query") ?? "";
 
-  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
-  const [isResizingSidebar, setIsResizingSidebar] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
-  const resizeStartXRef = useRef(0);
-  const resizeStartWidthRef = useRef(DEFAULT_SIDEBAR_WIDTH);
   const contextMenuRef = useRef<HTMLDivElement>(null);
-
-  const startSidebarResize = (clientX: number) => {
-    resizeStartXRef.current = clientX;
-    resizeStartWidthRef.current = sidebarWidth;
-    setIsResizingSidebar(true);
-  };
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -148,35 +133,6 @@ export function ChatsListView({
     };
   }, []);
 
-  useEffect(() => {
-    if (!isResizingSidebar) return;
-
-    const handleMouseMove = (event: MouseEvent) => {
-      const nextWidth =
-        resizeStartWidthRef.current + (event.clientX - resizeStartXRef.current);
-      const clampedWidth = Math.min(
-        MAX_SIDEBAR_WIDTH,
-        Math.max(MIN_SIDEBAR_WIDTH, nextWidth),
-      );
-      setSidebarWidth(clampedWidth);
-    };
-
-    const stopResize = () => setIsResizingSidebar(false);
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", stopResize);
-
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", stopResize);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    };
-  }, [isResizingSidebar]);
-
   const filteredConversations = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return conversations;
@@ -199,14 +155,9 @@ export function ChatsListView({
     });
   };
 
-  const sidebarStyle: CSSProperties = {
-    width: `${sidebarWidth}px`,
-  };
-
   return (
     <aside
-      style={sidebarStyle}
-      className="relative flex h-full flex-col min-h-0 border-r border-neutral-200/80 bg-white select-none shrink-0"
+      className="relative flex h-full flex-col min-h-0 bg-white select-none shrink-0"
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-5">
@@ -363,12 +314,6 @@ export function ChatsListView({
           </div>
         )}
       </div>
-
-      {/* Resize Handle */}
-      <div
-        onMouseDown={(e) => startSidebarResize(e.clientX)}
-        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-neutral-300 active:bg-neutral-400 transition-colors"
-      />
 
       {/* Custom Context Menu */}
       {contextMenu && (
