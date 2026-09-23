@@ -29,11 +29,11 @@ export async function UserProfileviewingHandler(call, callback) {
             name: retrieved_data.name ?? "",
             lastname: retrieved_data.lastname ?? "",
             dob: retrieved_data.dob
-              ? new Date(retrieved_data.dob).toISOString().slice(0, 10)
+              ? new Date(retrieved_data.dob).toISOString().slice(5, 10)
               : "",
             bio: retrieved_data.bio ?? "",
             phone: retrieved_data.phone ?? "",
-            profile_picture: retrieved_data.profile_picture ?? "",
+            profile_picture_url: `/api/profile/${String(user_id)}/picture`,
           }
         : undefined,
       success: !!retrieved_data,
