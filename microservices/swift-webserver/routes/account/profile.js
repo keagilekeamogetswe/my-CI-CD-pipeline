@@ -6,6 +6,7 @@ import {
 } from "./profile/controller/post.profile.pic";
 import { ConfigProfile } from "./profile/controller/configure.profile";
 import { GETConfigProfile } from "./profile/controller/get.profile.config";
+import { ViewProfile } from "./profile/controller/view.profile";
 const ProfileRouter = express.Router();
 ProfileRouter.get("/:userId/picture", ViewProfilePicture);
 ProfileRouter.post(
@@ -15,5 +16,6 @@ ProfileRouter.post(
 );
 ProfileRouter.put("/configure", ConfigProfile);
 ProfileRouter.get("/configure", GETConfigProfile);
+ProfileRouter.get("/view", ViewProfile);
 
 export default ProfileRouter;
