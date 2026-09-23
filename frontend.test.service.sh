@@ -14,4 +14,7 @@ echo "Backend is up on port 3002!"
 echo "Starting Next.js frontend in the background..."
 
 cd frontend/swift/website
-npm run dev
+npm run dev &
+
+echo "All services launched successfully in the background!"
+exit 0
